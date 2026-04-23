@@ -1,108 +1,241 @@
 "use client";
-import { useState } from "react";
-import VoiceInputButton from "@/components/VoiceInputButton";
-import TaskCard from "@/components/TaskCard";
+import dynamic from "next/dynamic";
+import { useState, useMemo } from "react";
+import Link from "next/link";
+import { Plus, AlertTriangle, CheckCircle2, ChevronDown, Check, Settings } from "lucide-react";
+import { useView } from "@/lib/viewContext";
+import { type SortField } from "@/lib/taskData";
+import FilterBar from "@/components/FilterBar";
+import WeekView from "@/components/views/WeekView";
+import TableView from "@/components/views/TableView";
 import AddTaskModal from "@/components/AddTaskModal";
+import VoiceInputButton from "@/components/VoiceInputButton";
+import TaskDetailsModal from "@/components/TaskDetailsModal";
 
-const todayTasks = [
-  { id: "1", title: "Review Q2 financial report", category: "WORK", priority: "HIGH", status: "IN_PROGRESS", time: "10:00 AM", tags: ["finance", "q2"] },
-  { id: "2", title: "Pay EMI for home loan", category: "LOAN", priority: "URGENT", status: "SCHEDULED", time: "11:00 AM", tags: ["payment"] },
-  { id: "3", title: "Morning jog — 5km", category: "HEALTH", priority: "MEDIUM", status: "DONE", time: "7:00 AM", tags: ["exercise"] },
-  { id: "4", title: "Call mom and check on her", category: "FAMILY", priority: "MEDIUM", status: "SCHEDULED", time: "6:00 PM", tags: [] },
-  { id: "5", title: "Fix leaking kitchen tap", category: "HOME", priority: "LOW", status: "BACKLOG", time: null, tags: ["repair"] },
-];
+const KanbanView = dynamic(() => import("@/components/views/KanbanView"), { ssr: false });
 
-const stats = [
-  { label: "Done Today", value: "3", icon: "✅", color: "#22c55e" },
-  { label: "Remaining", value: "4", icon: "⏳", color: "#f97316" },
-  { label: "This Week", value: "18", icon: "📅", color: "#6366f1" },
-  { label: "In Backlog", value: "24", icon: "📋", color: "#a855f7" },
-];
+function matchDate(d: string | null, preset: string | null, from: string | null, to: string | null): boolean {
+  if (!preset && !from && !to) return true;
+  const today    = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
+  const weekEnd  = new Date(today); weekEnd.setDate(today.getDate()+7);
+  const nextStart= new Date(today); nextStart.setDate(today.getDate()+7);
+  const nextEnd  = new Date(today); nextEnd.setDate(today.getDate()+14);
+  if (preset === "no_date") return !d;
+  if (!d) return false;
+  const dt = new Date(d); dt.setHours(0,0,0,0);
+  switch (preset) {
+    case "today":     return dt.getTime() === today.getTime();
+    case "tomorrow":  return dt.getTime() === tomorrow.getTime();
+    case "this_week": return dt >= today && dt <= weekEnd;
+    case "next_week": return dt >= nextStart && dt <= nextEnd;
+    case "overdue":   return dt < today;
+    case "custom": {
+      if (from && dt < new Date(from)) return false;
+      if (to   && dt > new Date(to))   return false;
+      return true;
+    }
+    default: return true;
+  }
+}
 
-export default function TodayPage() {
-  const [showAddModal, setShowAddModal] = useState(false);
+/* ─── Progress strip (always shown) ──────── */
+function ProgressStrip({ total, done, overdue }: { total:number; done:number; overdue:number }) {
+  const pct     = total ? Math.round(done / total * 100) : 0;
+  const todayStr= new Date().toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short" });
+  return (
+    <div className="flex items-center gap-4 py-3.5 px-4 lg:px-0">
+      {/* Mobile mini ring */}
+      <div className="lg:hidden relative w-10 h-10 shrink-0">
+        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+          <circle cx="18" cy="18" r="14" fill="none" stroke="#F5F5F4" strokeWidth="3.5"/>
+          <circle cx="18" cy="18" r="14" fill="none" stroke="#F97316" strokeWidth="3.5"
+            strokeDasharray={`${pct * 0.879} 100`} strokeLinecap="round"/>
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <CheckCircle2 className={`w-3.5 h-3.5 ${pct===100?"text-orange-500":"text-stone-300"}`} strokeWidth={2}/>
+        </div>
+      </div>
 
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      <div className="flex-1 min-w-0">
+        {/* Mobile: date + count */}
+        <div className="lg:hidden">
+          <p className="text-xs text-stone-400 font-medium">{todayStr}</p>
+          <p className="text-sm font-bold text-stone-900 leading-tight">{pct}% · {done}/{total} done{overdue>0?<span className="text-red-500 font-semibold"> · ⚠️ {overdue} overdue</span>:""}</p>
+        </div>
+
+        {/* Desktop: inline stat row */}
+        <div className="hidden lg:flex items-center gap-5 text-sm flex-wrap">
+          <span className="text-stone-500"><span className="font-bold text-stone-900">{total}</span> tasks</span>
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400"/><span className="font-semibold text-emerald-700">{done}</span><span className="text-stone-400">done</span></span>
+          {overdue>0 && <span className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-red-400"/><span className="font-semibold text-red-600">{overdue}</span><span className="text-stone-400">overdue</span></span>}
+          <div className="flex items-center gap-2 ml-1">
+            <div className="w-28 h-1.5 rounded-full bg-stone-200 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all" style={{ width:`${pct}%` }}/>
+            </div>
+            <span className="text-xs text-stone-400 font-medium">{pct}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Page ────────────────────────────────── */
+export default function TasksPage() {
+  const { tasks, filters, updateFilter, activeViewId, savedViews, taskCategoryMap, taskStatusMap, loadView, resetFilters, activeTaskId } = useView();
+  const [modal, setModal]   = useState(false);
+  const [search, setSearch] = useState("");
+  const [mobileViewsOpen, setMobileViewsOpen] = useState(false);
+
+  const activeView = savedViews.find(v => v.id === activeViewId);
+  const pageTitle  = activeView ? `${activeView.emoji} ${activeView.name}` : "All Tasks";
+
+  // 1. Apply contextual overrides (status changes via Kanban DnD, category changes via deletion)
+  const mappedTasks = useMemo(() => tasks.map(t => ({
+    ...t,
+    category: (taskCategoryMap[t.id] ?? t.category) as any,
+    status: (taskStatusMap[t.id] ?? t.status) as any,
+  })), [tasks, taskCategoryMap, taskStatusMap]);
+
+  // 2. Filter the tasks
+  const filtered = useMemo(() => mappedTasks.filter(t => {
+    if (filters.categories.length > 0 && !filters.categories.includes(t.category)) return false;
+    if (filters.priorities.length > 0 && !filters.priorities.includes(t.priority)) return false;
+    if (filters.statuses.length   > 0 && !filters.statuses.includes(t.status))    return false;
+    if (!matchDate(t.dueDate, filters.datePreset, filters.dateFrom, filters.dateTo)) return false;
+    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  }), [mappedTasks, filters, search]);
+
+  const today   = new Date(); today.setHours(0,0,0,0);
+  const done    = filtered.filter(t => t.status === "DONE").length;
+  const overdue = filtered.filter(t => t.dueDate && new Date(t.dueDate) < today && t.status !== "DONE" && t.status !== "CANCELLED").length;
+
+  function handleSort(f: SortField) {
+    updateFilter("sortBy", f);
+    updateFilter("sortDir", filters.sortBy === f ? (filters.sortDir === "asc" ? "desc" : "asc") : "asc");
+  }
+
+  const isWeek   = filters.viewType === "week";
+  const isKanban = filters.viewType === "kanban";
+
+  // Week view needs the content area to stretch full height — we use a special flex wrapper
+  const needsFullHeight = isWeek || isKanban;
 
   return (
-    <div className="min-h-screen p-8" style={{ background: "var(--bg-base)" }}>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <div className="text-sm font-medium mb-1" style={{ color: "var(--text-muted)" }}>{dateStr}</div>
-          <h1 className="text-3xl font-bold" style={{ color: "var(--text-primary)" }}>
-            Good Morning, Harkirat 👋
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            You have <span className="font-semibold" style={{ color: "#f97316" }}>4 tasks</span> left for today
-          </p>
-        </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style={{ background: "var(--accent)", color: "#fff", boxShadow: "0 0 24px rgba(99,102,241,0.3)" }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Add Task
-        </button>
-      </div>
+    /* Outer: always fills available height */
+    <div className={`bg-stone-50 flex flex-col ${needsFullHeight ? "h-[calc(100dvh-0px)] lg:h-screen overflow-hidden" : "min-h-screen"}`}>
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-2xl p-4" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-            <div className="text-2xl mb-2">{s.icon}</div>
-            <div className="text-2xl font-bold mb-0.5" style={{ color: s.color }}>{s.value}</div>
-            <div className="text-xs" style={{ color: "var(--text-muted)" }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick AI Summary Banner */}
-      <div className="rounded-2xl p-4 mb-8 flex items-center gap-4"
-        style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(167,139,250,0.08))", border: "1px solid rgba(99,102,241,0.25)" }}>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "rgba(99,102,241,0.2)" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth={1.8} className="w-5 h-5">
-            <path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 8v4l3 3" /><path d="M18 2l4 4-4 4M22 6H18" />
-          </svg>
-        </div>
-        <div className="flex-1">
-          <div className="text-sm font-semibold mb-0.5" style={{ color: "#a78bfa" }}>AI Insight</div>
-          <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            You've been rescheduling health tasks 3 weeks in a row. Try blocking 7–8 AM daily for your jog — you completed it today! 🎉
-          </div>
-        </div>
-        <button className="text-xs px-3 py-1.5 rounded-lg shrink-0" style={{ background: "rgba(99,102,241,0.2)", color: "#818cf8" }}>
-          View Full Summary
-        </button>
-      </div>
-
-      {/* Task List */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Today's Tasks</h2>
-        <div className="flex gap-2">
-          {["All", "Work", "Health", "Loan", "Family"].map((f) => (
-            <button key={f} className="text-xs px-3 py-1.5 rounded-full transition-all"
-              style={{ background: f === "All" ? "var(--accent)" : "var(--bg-elevated)", color: f === "All" ? "#fff" : "var(--text-secondary)", border: "1px solid var(--border)" }}>
-              {f}
+      {/* ── Mobile sticky header ── */}
+      <div className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-stone-200 shrink-0">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0 relative">
+            <div className="w-8 h-8 bg-orange-500 rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-orange-200">
+              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+                <path d="M5 12l4 4L19 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            
+            {/* View Selector Dropdown */}
+            <button 
+              onClick={() => setMobileViewsOpen(o => !o)} 
+              className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
+            >
+              <p className="text-base font-bold text-stone-900 truncate">{pageTitle}</p>
+              <ChevronDown className={`w-4 h-4 text-stone-400 shrink-0 transition-transform ${mobileViewsOpen ? "rotate-180" : ""}`}/>
             </button>
-          ))}
+
+            {/* Dropdown Menu */}
+            {mobileViewsOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMobileViewsOpen(false)}/>
+                <div className="absolute top-full left-0 mt-3 w-64 bg-white border border-stone-200 rounded-2xl shadow-xl z-50 py-2 flex flex-col max-h-[60vh] overflow-y-auto">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 px-3.5 py-1.5">Views</p>
+
+                  {savedViews.map(v => (
+                    <button key={v.id} onClick={() => { loadView(v); setMobileViewsOpen(false); }} className={`flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium transition-colors ${activeViewId === v.id ? "bg-orange-50 text-orange-700" : "hover:bg-stone-50 text-stone-700"}`}>
+                      <span className="w-5 text-center text-base">{v.emoji}</span>
+                      <span className="flex-1 text-left truncate">{v.name}</span>
+                      {activeViewId === v.id && <Check className="w-4 h-4 text-orange-500"/>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/settings" className="w-9 h-9 flex items-center justify-center rounded-xl bg-stone-100 text-stone-500 hover:bg-stone-200 transition-colors shrink-0">
+              <Settings className="w-4 h-4"/>
+            </Link>
+            <button onClick={() => setModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-sm shadow-orange-200 transition-colors shrink-0">
+              <Plus className="w-3.5 h-3.5"/> Add
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-3">
-        {todayTasks.map((task) => (
-          <TaskCard key={task.id} task={task} />
-        ))}
+      {/* ── Scrollable main content ── */}
+      <div className={`flex-1 flex flex-col overflow-hidden`}>
+        <div className={`max-w-[1440px] w-full mx-auto px-4 lg:px-8 flex flex-col flex-1 overflow-hidden ${needsFullHeight ? "" : "overflow-y-auto"}`}>
+
+          {/* Desktop title row */}
+          <div className="hidden lg:flex items-center justify-between py-5 shrink-0">
+            <div>
+              <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{pageTitle}</h1>
+              <ProgressStrip total={filtered.length} done={done} overdue={overdue}/>
+            </div>
+            <button onClick={() => setModal(true)}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold shadow-sm shadow-orange-200 transition-colors shrink-0">
+              <Plus className="w-4 h-4"/> Add Task
+            </button>
+          </div>
+
+          {/* Mobile progress strip */}
+          <div className="lg:hidden shrink-0 bg-white border border-stone-200 rounded-2xl mx-0 mt-3 shadow-sm">
+            <ProgressStrip total={filtered.length} done={done} overdue={overdue}/>
+            {/* Progress bar */}
+            <div className="px-4 pb-3">
+              <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all"
+                  style={{ width:`${filtered.length ? Math.round(done/filtered.length*100) : 0}%` }}/>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter bar — always same position */}
+          <div className="bg-white border border-stone-200 rounded-xl px-3 lg:px-4 py-3 shadow-sm mt-3 shrink-0">
+            <FilterBar search={search} setSearch={setSearch}/>
+          </div>
+
+          {/* ── View content ── (flex-1 so week/kanban fill remaining space) */}
+          <div className={`mt-3 ${needsFullHeight ? "flex-1 overflow-hidden" : "pb-24"}`}>
+            {isKanban ? (
+              <div className="h-full overflow-auto">
+                <KanbanView tasks={filtered}/>
+              </div>
+            ) : isWeek ? (
+              <div className="h-full">
+                <WeekView tasks={filtered}/>
+              </div>
+            ) : (
+              <TableView
+                tasks={filtered}
+                sortBy={filters.sortBy}
+                sortDir={filters.sortDir}
+                onSort={handleSort}
+                groupBy={filters.groupBy}
+              />
+            )}
+          </div>
+
+        </div>
       </div>
 
-      {/* Voice Button */}
-      <VoiceInputButton />
-      {showAddModal && <AddTaskModal onClose={() => setShowAddModal(false)} />}
+      <VoiceInputButton/>
+      {modal && <AddTaskModal onClose={() => setModal(false)}/>}
+      {activeTaskId && <TaskDetailsModal taskId={activeTaskId} />}
     </div>
   );
 }

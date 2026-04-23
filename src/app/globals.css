@@ -1,38 +1,75 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@layer base {
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html, body { height: 100%; overscroll-behavior: none; }
+  input, textarea, select, button { font-family: inherit; }
+  input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
 
-:root {
-  --bg-base: #0c0c12;
-  --bg-surface: #13131e;
-  --bg-elevated: #1c1c2e;
-  --bg-hover: #22223a;
-  --border: #2a2a40;
-  --border-light: #33334d;
-
-  --text-primary: #e8e8f0;
-  --text-secondary: #8888aa;
-  --text-muted: #55556a;
-
-  --accent: #6366f1;
-  --accent-light: #818cf8;
-  --accent-glow: rgba(99,102,241,0.15);
-
-  /* Categories */
-  --cat-work: #3b82f6;
-  --cat-health: #22c55e;
-  --cat-home: #f97316;
-  --cat-loan: #ef4444;
-  --cat-friends: #a855f7;
-  --cat-family: #ec4899;
-  --cat-lifestyle: #14b8a6;
-  --cat-personal: #6366f1;
+  /* Scrollbar - thin and warm */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #fdba74; }
+  * { scrollbar-width: thin; }
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Rich Editor Styles */
+.editor-content[contenteditable]:empty::before {
+  content: attr(data-placeholder);
+  color: #a8a29e;
+  pointer-events: none;
+  display: block; /* For Firefox */
+}
 
-html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg-base); color: var(--text-primary); }
+.editor-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.editor-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.editor-content b, .editor-content strong {
+  font-weight: 700;
+  color: #1c1917; /* stone-900 */
+}
+
+.editor-content i, .editor-content em {
+  font-style: italic;
+}
+
+/* Base styles for output HTML (like comments) */
+.rich-text-output ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-output ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-output b, .rich-text-output strong {
+  font-weight: 700;
+  color: #1c1917;
+}
+
+.rich-text-output i, .rich-text-output em {
+  font-style: italic;
+}

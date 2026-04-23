@@ -1,180 +1,145 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { NotebookPen, BarChart3, Settings, Plus, Trash2, Pin, LogOut } from "lucide-react";
+import { useView } from "@/lib/viewContext";
+import type { SavedView } from "@/lib/taskData";
+import { useSession, signOut } from "next-auth/react";
+import NotificationBell from "@/components/NotificationBell";
 
-const navItems = [
-  {
-    href: "/",
-    label: "Today",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-      </svg>
-    ),
-  },
-  {
-    href: "/week",
-    label: "This Week",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-      </svg>
-    ),
-  },
-  {
-    href: "/kanban",
-    label: "Kanban",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <rect x="3" y="3" width="5" height="18" rx="1" /><rect x="10" y="3" width="5" height="12" rx="1" /><rect x="17" y="3" width="5" height="15" rx="1" />
-      </svg>
-    ),
-  },
-  {
-    href: "/backlog",
-    label: "Backlog",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
-      </svg>
-    ),
-  },
-  {
-    href: "/notes",
-    label: "Journal",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
-      </svg>
-    ),
-  },
-  {
-    href: "/summary",
-    label: "AI Summary",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 8v4l3 3" /><path d="M18 2l4 4-4 4" /><path d="M22 6H18" />
-      </svg>
-    ),
-  },
-  {
-    href: "/settings",
-    label: "Settings",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M19.07 19.07A10 10 0 0 0 4.93 4.93" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
-      </svg>
-    ),
-  },
+
+/* ─── Logo ────────────────────────────────── */
+function LifeOSLogo() {
+  return (
+    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 shrink-0">
+      <rect width="36" height="36" rx="9" fill="#EA580C"/>
+      <rect x="9"  y="10.5" width="7" height="1.75" rx="0.875" fill="white" fillOpacity="0.35"/>
+      <path d="M19 11.5L21 13.5L25.5 9"   stroke="white" strokeOpacity="0.35" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <rect x="9"  y="17"   width="7" height="1.75" rx="0.875" fill="white" fillOpacity="0.65"/>
+      <path d="M19 18L21 20L25.5 15.5"    stroke="white" strokeOpacity="0.65" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <rect x="9"  y="23.5" width="7" height="1.75" rx="0.875" fill="white"/>
+      <path d="M19 24.5L21 26.5L25.5 22"  stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+const pages: { href: string; label: string; icon: React.ElementType }[] = [
+  // { href:"/notes",   label:"Journal",    icon:NotebookPen },
+  // { href:"/summary", label:"AI Summary", icon:BarChart3 },
 ];
 
-const categories = [
-  { label: "Work", color: "#3b82f6" },
-  { label: "Health", color: "#22c55e" },
-  { label: "Home", color: "#f97316" },
-  { label: "Loan", color: "#ef4444" },
-  { label: "Friends", color: "#a855f7" },
-  { label: "Family", color: "#ec4899" },
-  { label: "Lifestyle", color: "#14b8a6" },
-];
+function SavedViewItem({ view, active, isDefault }: { view: SavedView; active: boolean; isDefault: boolean }) {
+  const { loadView, deleteView, setDefaultViewId } = useView();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const handleClick = () => {
+    if (pathname !== "/") router.push("/");
+    loadView(view);
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      className={`group flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors ${
+        active ? "bg-orange-50" : "hover:bg-stone-100"
+      }`}
+    >
+      <span className="text-sm shrink-0">{view.emoji}</span>
+      <span className={`text-sm flex-1 truncate font-medium ${active ? "text-orange-700" : "text-stone-600"}`}>
+        {view.name}
+      </span>
+      <button
+        onClick={e => { e.stopPropagation(); setDefaultViewId(isDefault ? null : view.id); }}
+        className={`p-0.5 rounded transition-all ${isDefault ? "text-orange-500 opacity-100" : "text-stone-300 opacity-0 group-hover:opacity-100 hover:text-orange-500"}`}
+        title={isDefault ? "Remove default" : "Set as default"}
+      >
+        <Pin className={`w-3 h-3 ${isDefault ? "fill-orange-500" : ""}`} />
+      </button>
+      <button
+        onClick={e => { e.stopPropagation(); deleteView(view.id); }}
+        className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-stone-400 hover:text-red-500 transition-all"
+      >
+        <Trash2 className="w-3 h-3" />
+      </button>
+    </div>
+  );
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const { savedViews, activeViewId, saveCurrentView, defaultViewId, loadDefaultView } = useView();
+  const onTasksPage = pathname === "/";
+
+  const userInitial = session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || "U";
+
 
   return (
-    <aside
-      className="flex flex-col h-screen shrink-0"
-      style={{
-        width: 240,
-        background: "var(--bg-surface)",
-        borderRight: "1px solid var(--border)",
-      }}
-    >
+    <aside className="w-56 h-screen bg-white border-r border-stone-200 flex flex-col shrink-0 select-none">
       {/* Logo */}
-      <div className="px-5 py-5 flex items-center gap-3" style={{ borderBottom: "1px solid var(--border)" }}>
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: "linear-gradient(135deg, #6366f1, #a78bfa)" }}
-        >
-          <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
-          </svg>
-        </div>
-        <div>
-          <div className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>Life OS</div>
-          <div className="text-xs" style={{ color: "var(--text-muted)" }}>Personal Assistant</div>
-        </div>
+      <div className="px-4 pt-5 pb-4">
+        <Link href="/" onClick={loadDefaultView} className="flex items-center gap-2.5">
+          <LifeOSLogo />
+          <div>
+            <p className="text-sm font-bold text-stone-900 leading-none">Life OS</p>
+            <p className="text-[11px] text-stone-400 mt-0.5 font-medium">Personal Assistant</p>
+          </div>
+        </Link>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        <div className="text-xs font-semibold uppercase tracking-widest mb-2 px-2" style={{ color: "var(--text-muted)" }}>
-          Views
-        </div>
-        <ul className="space-y-0.5">
-          {navItems.map((item) => {
-            const active = pathname === item.href;
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
-                  style={{
-                    color: active ? "#fff" : "var(--text-secondary)",
-                    background: active ? "var(--accent)" : "transparent",
-                    boxShadow: active ? "0 0 20px var(--accent-glow)" : "none",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
-                  }}
-                >
-                  {item.icon}
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      <div className="mx-4 h-px bg-stone-100 mb-3" />
 
-        {/* Categories */}
-        <div className="mt-6 mb-2 text-xs font-semibold uppercase tracking-widest px-2" style={{ color: "var(--text-muted)" }}>
-          Categories
+      {/* Saved views */}
+      <div className="flex-1 px-3 overflow-y-auto pb-3">
+        <div className="flex items-center justify-between px-2 mb-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">Saved Views</p>
+          {onTasksPage && (
+            <button
+              onClick={() => {
+                const name = prompt("Name this view:");
+                if (name?.trim()) saveCurrentView(name.trim(), "📋");
+              }}
+              className="p-0.5 rounded text-stone-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
-        <ul className="space-y-0.5">
-          {categories.map((cat) => (
-            <li key={cat.label}>
-              <Link
-                href={`/backlog?cat=${cat.label.toLowerCase()}`}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150"
-                style={{ color: "var(--text-secondary)" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-              >
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cat.color }} />
-                {cat.label}
-              </Link>
-            </li>
+        <div className="space-y-0.5">
+          {savedViews.map(v => (
+            <SavedViewItem key={v.id} view={v} active={onTasksPage && activeViewId === v.id} isDefault={defaultViewId === v.id} />
           ))}
-        </ul>
-      </nav>
+        </div>
+      </div>
 
       {/* User */}
-      <div className="px-3 py-4" style={{ borderTop: "1px solid var(--border)" }}>
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer"
-          style={{ background: "var(--bg-elevated)" }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-            style={{ background: "linear-gradient(135deg, #6366f1, #a78bfa)", color: "#fff" }}>
-            H
+      <div className="px-3 py-3 border-t border-stone-100 space-y-1">
+        <div className="flex items-center gap-1.5 px-2">
+          <NotificationBell />
+          <Link href="/settings" className={`p-2 rounded-xl transition-colors ${pathname === '/settings' ? "bg-orange-50 text-orange-600" : "text-stone-400 hover:text-stone-600 hover:bg-stone-50"}`}>
+            <Settings className="w-5 h-5" />
+          </Link>
+          <button 
+            onClick={() => signOut()}
+            className="p-2 rounded-xl text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            title="Sign out"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-stone-50 cursor-pointer transition-colors group min-w-0">
+          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 border border-orange-200">
+            <span className="text-xs font-bold text-orange-700">{userInitial}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>Harkirat</div>
-            <div className="text-xs truncate" style={{ color: "var(--text-muted)" }}>harkirat@gmail.com</div>
+            <p className="text-sm font-bold text-stone-900 truncate leading-none">{session?.user?.name || 'User'}</p>
+            <p className="text-[11px] text-stone-400 truncate mt-1 font-medium">{session?.user?.email}</p>
           </div>
         </div>
       </div>
+
     </aside>
   );
 }

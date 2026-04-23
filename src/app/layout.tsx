@@ -1,26 +1,97 @@
 import type { Metadata } from "next";
+import type { Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import AppLayout from "@/components/AppLayout";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
-export const metadata: Metadata = {
-  title: "Life OS — Personal Task & Alert Manager",
-  description: "Your personal life operating system. Voice-first task management with smart alerts, weekly summaries, and AI insights.",
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+const inter = Inter({ subsets: ["latin"], weight: ["400","500","600","700"] });
+
+export const metadata: Metadata = {
+  title: "Life OS — Personal Task Manager",
+  description: "Your personal life operating system",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Life OS",
+  },
+};
+
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
+  
+  let initialTasks: any[] = [];
+  let initialCategories: any[] = [];
+  let initialViews: any[] = [];
+
+  if (session?.user?.id) {
+    initialTasks = await prisma.task.findMany({ 
+      where: { userId: session.user.id },
+      include: { comments: true },
+      orderBy: { createdAt: "desc" }
+    });
+    
+    initialCategories = await prisma.category.findMany({ 
+      where: { userId: session.user.id } 
+    });
+    
+    initialViews = await prisma.savedView.findMany({ 
+      where: { userId: session.user.id } 
+    });
+  }
+
+  // Convert Date objects to strings for Client Components
+  const safeTasks = initialTasks.map(t => ({
+    ...t,
+    dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.updatedAt.toISOString(),
+    comments: t.comments.map((c: any) => ({
+      ...c,
+      createdAt: c.createdAt.toISOString(),
+    })),
+    // Map db's categoryId to the frontend's category property
+    category: t.categoryId,
+  }));
+
+  const safeCategories = initialCategories.map(c => ({
+    ...c,
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+    // Convert the db colorCode string back to dot/badge/text
+    dot: c.colorCode ? JSON.parse(c.colorCode).dot : 'bg-stone-500',
+    badge: c.colorCode ? JSON.parse(c.colorCode).badge : 'bg-stone-50 text-stone-700',
+    text: c.colorCode ? JSON.parse(c.colorCode).text : 'text-stone-700',
+  }));
+
+  const safeViews = initialViews.map(v => ({
+    ...v,
+    createdAt: v.createdAt.toISOString(),
+    updatedAt: v.updatedAt.toISOString(),
+    filters: typeof v.filters === 'string' ? JSON.parse(v.filters) : v.filters,
+  }));
+
   return (
-    <html lang="en" className="dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-      </head>
-      <body className="flex h-screen overflow-hidden" style={{ background: "var(--bg-base)", fontFamily: "'Inter', sans-serif" }}>
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto">
+    <html lang="en">
+      <body className={`${inter.className} bg-stone-50`} suppressHydrationWarning>
+        <AppLayout 
+          initialTasks={safeTasks} 
+          initialCategories={safeCategories} 
+          initialViews={safeViews}
+        >
           {children}
-        </main>
+        </AppLayout>
       </body>
     </html>
+
   );
 }
