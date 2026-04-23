@@ -61,7 +61,7 @@ export async function createTask(incomingData: any) {
 
     const delay = alertTime.getTime() - Date.now();
     if (delay > 0) {
-      await alertQueue.add(
+      await alertQueue?.add(
         `alert-${task.id}`,
         { taskId: task.id, userId: session.user.id },
         { delay, jobId: `alert-${task.id}` }
@@ -125,14 +125,14 @@ export async function updateTask(id: string, incomingData: any) {
     const delay = alertTime.getTime() - Date.now();
     if (delay > 0) {
       // BullMQ will replace the existing job with the same jobId
-      await alertQueue.add(
+      await alertQueue?.add(
         `alert-${task.id}`,
         { taskId: task.id, userId: session.user.id },
         { delay, jobId: `alert-${task.id}` }
       );
     } else {
       // If time passed, remove existing job if any
-      const job = await alertQueue.getJob(`alert-${task.id}`);
+      const job = await alertQueue?.getJob(`alert-${task.id}`);
       if (job) await job.remove();
     }
   }

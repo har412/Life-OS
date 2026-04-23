@@ -5,7 +5,7 @@ import { prisma } from "./prisma";
 let worker: Worker | null = null;
 
 export function startAlertWorker() {
-  if (worker) return;
+  if (worker || !redisConnection) return;
 
   console.log("🚀 Starting Alert Worker...");
 

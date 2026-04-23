@@ -1,9 +1,9 @@
 import Redis from "ioredis";
 
-const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+const redisUrl = process.env.REDIS_URL;
 
-const redisConnection = new Redis(redisUrl, {
+const redisConnection = redisUrl ? new Redis(redisUrl, {
   maxRetriesPerRequest: null,
-});
+}) : null;
 
 export { redisConnection };
