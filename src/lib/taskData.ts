@@ -134,8 +134,7 @@ export const STATUS_ORDER:   Record<Status,   number> = { IN_PROGRESS:0, SCHEDUL
 
 
 export const PRESET_SAVED_VIEWS: SavedView[] = [
-  { id:'all-tasks',   name:'All Tasks',   emoji:'📋', filters:{ ...DEFAULT_FILTERS } },
-  { id:'today',       name:'Today',       emoji:'☀️', filters:{ ...DEFAULT_FILTERS, datePreset:'today',   viewType:'table' } },
+  { id:'all-tasks',   name:'Tasks',   emoji:'📋', filters:{ ...DEFAULT_FILTERS } },
 ];
 
 export function formatDate(iso: string | null): { text:string; isOverdue:boolean; isToday:boolean; isTomorrow:boolean } {

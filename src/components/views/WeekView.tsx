@@ -6,29 +6,38 @@ import { useView } from "@/lib/viewContext";
 
 const today = new Date();
 
-function getWeekDays() {
+function getLocalDateString(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+const weekDays = Array.from({ length: 7 }, (_, i) => {
   const dow = today.getDay();
   const mon = new Date(today);
   mon.setDate(today.getDate() - ((dow + 6) % 7));
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(mon);
-    d.setDate(mon.getDate() + i);
-    return {
-      label:   ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i],
-      date:    d,
-      isToday: d.toDateString() === today.toDateString(),
-      iso:     d.toISOString().slice(0, 10),
-    };
-  });
-}
-
-const weekDays = getWeekDays();
+  const d = new Date(mon);
+  d.setDate(mon.getDate() + i);
+  return {
+    label:   ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i],
+    date:    d,
+    isToday: d.toDateString() === today.toDateString(),
+    iso:     getLocalDateString(d),
+  };
+});
 
 function groupByDay(tasks: Task[]) {
   const map: Record<string, Task[]> = {};
   weekDays.forEach(d => { map[d.iso] = []; });
   tasks.forEach(t => {
-    if (t.dueDate && map[t.dueDate] !== undefined) map[t.dueDate].push(t);
+    if (t.dueDate) {
+      const d = new Date(t.dueDate);
+      const isoDate = getLocalDateString(d);
+      if (map[isoDate] !== undefined) {
+        map[isoDate].push(t);
+      }
+    }
   });
   return map;
 }
@@ -119,10 +128,9 @@ export default function WeekView({ tasks }: { tasks: Task[] }) {
               </div>
             ) : (
               <div className="space-y-2.5">
-                {dayTasks.map(t => {
-                  const { allCategories } = { allCategories: [] }; // placeholder
-                  return <MobileTaskRow key={t.id} task={t} />;
-                })}
+                {dayTasks.map(t => (
+                  <MobileTaskRow key={t.id} task={t} />
+                ))}
               </div>
             )}
           </div>

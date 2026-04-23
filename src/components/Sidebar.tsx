@@ -1,12 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { NotebookPen, BarChart3, Settings, Plus, Trash2, Pin, LogOut } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { GripVertical, NotebookPen, BarChart3, Settings, Plus, Trash2, Pin, LogOut } from "lucide-react";
 import { useView } from "@/lib/viewContext";
-import type { SavedView } from "@/lib/taskData";
+import { type SavedView, PRESET_SAVED_VIEWS } from "@/lib/taskData";
 import { useSession, signOut } from "next-auth/react";
 import NotificationBell from "@/components/NotificationBell";
-
 
 /* ─── Logo ────────────────────────────────── */
 function LifeOSLogo() {
@@ -28,7 +28,19 @@ const pages: { href: string; label: string; icon: React.ElementType }[] = [
   // { href:"/summary", label:"AI Summary", icon:BarChart3 },
 ];
 
-function SavedViewItem({ view, active, isDefault }: { view: SavedView; active: boolean; isDefault: boolean }) {
+function SavedViewItem({ 
+  view, 
+  active, 
+  isDefault,
+  provided,
+  isDragging
+}: { 
+  view: SavedView; 
+  active: boolean; 
+  isDefault: boolean;
+  provided: any;
+  isDragging: boolean;
+}) {
   const { loadView, deleteView, setDefaultViewId } = useView();
   const router = useRouter();
   const pathname = usePathname();
@@ -38,30 +50,52 @@ function SavedViewItem({ view, active, isDefault }: { view: SavedView; active: b
     loadView(view);
   };
 
+  const isPreset = PRESET_SAVED_VIEWS.some(p => p.id === view.id);
+
   return (
     <div
+      ref={provided.innerRef}
+      {...provided.draggableProps}
       onClick={handleClick}
-      className={`group flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors ${
+      className={`group flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all ${
         active ? "bg-orange-50" : "hover:bg-stone-100"
-      }`}
+      } ${isDragging ? "shadow-lg border border-orange-200 bg-white z-50 ring-2 ring-orange-500/20" : ""}`}
     >
+      <div 
+        {...provided.dragHandleProps}
+        className="opacity-0 group-hover:opacity-100 p-0.5 -ml-1 text-stone-300 hover:text-stone-500 transition-opacity"
+      >
+        <GripVertical className="w-3.5 h-3.5" />
+      </div>
+      
       <span className="text-sm shrink-0">{view.emoji}</span>
       <span className={`text-sm flex-1 truncate font-medium ${active ? "text-orange-700" : "text-stone-600"}`}>
         {view.name}
       </span>
-      <button
-        onClick={e => { e.stopPropagation(); setDefaultViewId(isDefault ? null : view.id); }}
-        className={`p-0.5 rounded transition-all ${isDefault ? "text-orange-500 opacity-100" : "text-stone-300 opacity-0 group-hover:opacity-100 hover:text-orange-500"}`}
-        title={isDefault ? "Remove default" : "Set as default"}
-      >
-        <Pin className={`w-3 h-3 ${isDefault ? "fill-orange-500" : ""}`} />
-      </button>
-      <button
-        onClick={e => { e.stopPropagation(); deleteView(view.id); }}
-        className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-stone-400 hover:text-red-500 transition-all"
-      >
-        <Trash2 className="w-3 h-3" />
-      </button>
+      
+      <div className="flex items-center gap-0.5">
+        <button
+          onClick={e => { e.stopPropagation(); setDefaultViewId(isDefault ? null : view.id); }}
+          className={`p-1 rounded transition-all ${isDefault ? "text-orange-500 opacity-100" : "text-stone-300 opacity-0 group-hover:opacity-100 hover:text-orange-500 hover:bg-orange-50"}`}
+          title={isDefault ? "Remove default" : "Set as default"}
+        >
+          <Pin className={`w-3 h-3 ${isDefault ? "fill-orange-500" : ""}`} />
+        </button>
+        {!isPreset && (
+          <button
+            onClick={e => { 
+              e.stopPropagation(); 
+              if (confirm(`Are you sure you want to delete the view "${view.name}"?`)) {
+                deleteView(view.id); 
+              }
+            }}
+            className="opacity-0 group-hover:opacity-100 p-1 rounded text-stone-300 hover:text-red-500 hover:bg-red-50 transition-all"
+            title="Delete view"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -69,11 +103,20 @@ function SavedViewItem({ view, active, isDefault }: { view: SavedView; active: b
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { savedViews, activeViewId, saveCurrentView, defaultViewId, loadDefaultView } = useView();
+  const { savedViews, activeViewId, saveCurrentView, defaultViewId, loadDefaultView, reorderViews } = useView();
   const onTasksPage = pathname === "/";
 
   const userInitial = session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || "U";
 
+  const onDragEnd = (result: any) => {
+    if (!result.destination) return;
+    
+    const items = Array.from(savedViews);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    reorderViews(items.map(v => v.id));
+  };
 
   return (
     <aside className="w-56 h-screen bg-white border-r border-stone-200 flex flex-col shrink-0 select-none">
@@ -106,11 +149,33 @@ export default function Sidebar() {
             </button>
           )}
         </div>
-        <div className="space-y-0.5">
-          {savedViews.map(v => (
-            <SavedViewItem key={v.id} view={v} active={onTasksPage && activeViewId === v.id} isDefault={defaultViewId === v.id} />
-          ))}
-        </div>
+
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="views-list">
+            {(provided) => (
+              <div 
+                {...provided.droppableProps} 
+                ref={provided.innerRef} 
+                className="space-y-0.5"
+              >
+                {savedViews.map((v, index) => (
+                  <Draggable key={v.id} draggableId={v.id} index={index}>
+                    {(provided, snapshot) => (
+                      <SavedViewItem 
+                        view={v} 
+                        active={onTasksPage && activeViewId === v.id} 
+                        isDefault={defaultViewId === v.id}
+                        provided={provided}
+                        isDragging={snapshot.isDragging}
+                      />
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       </div>
 
       {/* User */}

@@ -2,7 +2,8 @@
 import dynamic from "next/dynamic";
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus, AlertTriangle, CheckCircle2, ChevronDown, Check, Settings } from "lucide-react";
+import { Plus, AlertTriangle, CheckCircle2, ChevronDown, Check, Settings, LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { useView } from "@/lib/viewContext";
 import { type SortField } from "@/lib/taskData";
 import FilterBar from "@/components/FilterBar";
@@ -89,7 +90,7 @@ export default function TasksPage() {
   const [mobileViewsOpen, setMobileViewsOpen] = useState(false);
 
   const activeView = savedViews.find(v => v.id === activeViewId);
-  const pageTitle  = activeView ? `${activeView.emoji} ${activeView.name}` : "All Tasks";
+  const pageTitle  = activeView ? `${activeView.emoji} ${activeView.name}` : "Tasks";
 
   // 1. Apply contextual overrides (status changes via Kanban DnD, category changes via deletion)
   const mappedTasks = useMemo(() => tasks.map(t => ({
@@ -168,6 +169,13 @@ export default function TasksPage() {
             <Link href="/settings" className="w-9 h-9 flex items-center justify-center rounded-xl bg-stone-100 text-stone-500 hover:bg-stone-200 transition-colors shrink-0">
               <Settings className="w-4 h-4"/>
             </Link>
+            <button 
+              onClick={() => signOut()}
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors shrink-0"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4"/>
+            </button>
             <button onClick={() => setModal(true)}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-sm shadow-orange-200 transition-colors shrink-0">
               <Plus className="w-3.5 h-3.5"/> Add

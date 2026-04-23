@@ -6,7 +6,7 @@ import {
 } from "@/lib/taskData";
 import { createTask, updateTask, deleteTask } from "@/app/actions/tasks";
 import { createCategory, updateCategory, deleteCategory } from "@/app/actions/categories";
-import { createSavedView, deleteSavedView, setDefaultView } from "@/app/actions/views";
+import { createSavedView, deleteSavedView, setDefaultView, reorderSavedViews } from "@/app/actions/views";
 
 
 interface ViewContextType {
@@ -36,6 +36,7 @@ interface ViewContextType {
   taskStatusMap:      Record<string, string>; // taskId -> overridden status
   updateTaskStatus:   (taskId: string, status: string) => void;
   deleteTask:         (taskId: string) => Promise<void>;
+  reorderViews:       (ids: string[]) => Promise<void>;
 
   // Task Details Modal
   activeTaskId:       string | null;
@@ -72,11 +73,11 @@ export function ViewProvider({
   }, []);
 
   const [filters, setFiltersState] = useState<FilterState>(() => {
-    const defaultView = savedViews.find((v: any) => v.isDefault) || savedViews.find(v => v.name === "Today") || savedViews[0];
+    const defaultView = savedViews.find((v: any) => v.isDefault) || savedViews.find(v => v.id === "all-tasks") || savedViews[0];
     return defaultView ? { ...defaultView.filters } : { ...DEFAULT_FILTERS };
   });
   const [activeViewId, setActiveViewId] = useState<string | null>(() => {
-    const defaultView = savedViews.find((v: any) => v.isDefault) || savedViews.find(v => v.name === "Today") || savedViews[0];
+    const defaultView = savedViews.find((v: any) => v.isDefault) || savedViews.find(v => v.id === "all-tasks") || savedViews[0];
     return defaultView ? defaultView.id : null;
   });
 
@@ -166,6 +167,16 @@ export function ViewProvider({
     if (activeViewId === id) setActiveViewId(null); 
     if (defaultViewId === id) setDefaultViewId(null);
   }, [activeViewId, defaultViewId]);
+
+  const reorderViews = useCallback(async (ids: string[]) => {
+    // Optimistic update
+    setSavedViews(prev => {
+      const copy = [...prev];
+      return ids.map(id => copy.find(v => v.id === id)!).filter(Boolean);
+    });
+    await reorderSavedViews(ids);
+  }, []);
+
   const resetFilters = useCallback(() => { setFiltersState({ ...DEFAULT_FILTERS }); setActiveViewId(null); }, []);
 
   const loadDefaultView = useCallback(() => {
@@ -173,8 +184,8 @@ export function ViewProvider({
       const v = savedViews.find(x => x.id === defaultViewId);
       if (v) { loadView(v); return; }
     }
-    const todayView = savedViews.find(x => x.name === "Today");
-    if (todayView) { loadView(todayView); return; }
+    const allTasksView = savedViews.find(x => x.id === "all-tasks");
+    if (allTasksView) { loadView(allTasksView); return; }
     resetFilters();
   }, [defaultViewId, savedViews, loadView, resetFilters]);
 
@@ -227,6 +238,7 @@ export function ViewProvider({
       taskStatusMap, updateTaskStatus, deleteTask: deleteTaskMethod,
       activeTaskId, setActiveTaskId, taskDetailsMap, updateTaskDetails,
       tasks, refreshTasks, addTask,
+      reorderViews,
     }}>
       {children}
     </ViewContext.Provider>

@@ -10,7 +10,7 @@ export async function getSavedViews() {
 
   return prisma.savedView.findMany({
     where: { userId: session.user.id },
-    orderBy: { createdAt: "asc" },
+    orderBy: { order: "asc" },
   });
 }
 
@@ -25,9 +25,17 @@ export async function createSavedView(data: { name: string; emoji: string; filte
     });
   }
 
+  // Get max order
+  const lastView = await prisma.savedView.findFirst({
+    where: { userId: session.user.id },
+    orderBy: { order: "desc" },
+  });
+  const order = lastView ? lastView.order + 1 : 0;
+
   const savedView = await prisma.savedView.create({
     data: {
       ...data,
+      order,
       userId: session.user.id,
     },
   });
@@ -36,11 +44,30 @@ export async function createSavedView(data: { name: string; emoji: string; filte
   return { savedView };
 }
 
+export async function reorderSavedViews(ids: string[]) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Unauthorized" };
+  const userId = session.user.id;
+
+  // Update order for each view
+  const updates = ids.map((id, index) => 
+    prisma.savedView.update({
+      where: { id, userId },
+      data: { order: index },
+    })
+  );
+
+  await prisma.$transaction(updates);
+
+  revalidatePath("/");
+  return { success: true };
+}
+
 export async function deleteSavedView(id: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  await prisma.savedView.delete({
+  await prisma.savedView.deleteMany({
     where: { id, userId: session.user.id },
   });
 

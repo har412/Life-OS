@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { BUILT_IN_CATEGORIES, PRESET_SAVED_VIEWS } from "@/lib/taskData";
 
+import { auth } from "@/auth";
+
 
 export async function registerUser(formData: FormData) {
   const email = formData.get("email") as string;
@@ -46,6 +48,19 @@ export async function registerUser(formData: FormData) {
       }
     },
 
+  });
+
+  return { success: true };
+}
+
+export async function changePassword(password: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Unauthorized" };
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { hashedPassword },
   });
 
   return { success: true };

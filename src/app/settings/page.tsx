@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Bell, Tag, User, Shield, Smartphone, ChevronRight, ArrowLeft } from "lucide-react";
+import { Bell, Tag, User, Shield, Smartphone, ChevronRight, ArrowLeft, LogOut } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
 import dynamic from "next/dynamic";
+import { changePassword } from "@/app/actions/auth";
 
 const CategoryManager = dynamic(() => import("@/components/CategoryManager"), { ssr: false });
 
@@ -39,7 +41,49 @@ function NotificationsTab() {
   );
 }
 
+
 function AccountTab() {
+  const { data: session } = useSession();
+  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    const res = await changePassword(password);
+    setLoading(false);
+
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccess(true);
+      setShowForm(false);
+      setPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setSuccess(false), 3000);
+    }
+  };
+
+  const isOAuth = session?.user && !(session.user as any).hasPassword; 
+  // Note: We might need to adjust this depending on how session is structured.
+  // For now, let's assume if they have an image or specific provider, they might be OAuth.
+  // But the user's existing mock uses 'authProvider' state for demo.
+  
   const [authProvider, setAuthProvider] = useState<"email" | "google">("email");
 
   return (
@@ -52,11 +96,11 @@ function AccountTab() {
 
       <div className="flex items-center gap-4 p-4 bg-white border border-stone-200 rounded-xl">
         <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center shrink-0">
-          <span className="text-2xl font-bold text-orange-600">H</span>
+          <span className="text-2xl font-bold text-orange-600">{session?.user?.name?.[0] || "U"}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-base font-bold text-stone-900">Harkirat</p>
-          <p className="text-sm text-stone-400">harkirat@gmail.com</p>
+          <p className="text-base font-bold text-stone-900">{session?.user?.name || "User"}</p>
+          <p className="text-sm text-stone-400">{session?.user?.email}</p>
         </div>
         <button className="text-xs font-semibold text-orange-600 border border-orange-200 px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-colors">Edit</button>
       </div>
@@ -69,13 +113,71 @@ function AccountTab() {
           </p>
         </div>
       ) : (
-        <button className="w-full flex items-center justify-between p-4 bg-white border border-stone-200 hover:border-stone-300 hover:bg-stone-50 rounded-xl transition-colors text-left">
-          <div>
-            <p className="text-sm font-semibold text-stone-900">Change password</p>
-            <p className="text-xs text-stone-400 mt-0.5">Last changed 3 months ago</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-stone-400"/>
-        </button>
+        <div className="space-y-3">
+          {!showForm ? (
+            <button 
+              onClick={() => setShowForm(true)}
+              className="w-full flex items-center justify-between p-4 bg-white border border-stone-200 hover:border-stone-300 hover:bg-stone-50 rounded-xl transition-colors text-left"
+            >
+              <div>
+                <p className="text-sm font-semibold text-stone-900">Change password</p>
+                <p className="text-xs text-stone-400 mt-0.5">Update your security credentials</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-stone-400"/>
+            </button>
+          ) : (
+            <form onSubmit={handleUpdate} className="p-4 bg-white border border-orange-200 rounded-xl space-y-4 shadow-sm shadow-orange-50">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-stone-900">Update Password</p>
+                <button type="button" onClick={() => setShowForm(false)} className="text-[10px] font-bold uppercase text-stone-400 hover:text-stone-600">Cancel</button>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block mb-1">New Password</label>
+                  <input 
+                    type="password" 
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block mb-1">Confirm Password</label>
+                  <input 
+                    type="password" 
+                    required
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              {error && <p className="text-xs font-medium text-red-500">{error}</p>}
+              
+              <button 
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold shadow-sm shadow-orange-200 transition-colors disabled:opacity-50"
+              >
+                {loading ? "Updating..." : "Confirm Change"}
+              </button>
+            </form>
+          )}
+          
+          {success && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+              <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" className="w-3 h-3 text-white" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <p className="text-xs font-bold text-emerald-700">Password updated successfully!</p>
+            </div>
+          )}
+        </div>
       )}
 
       {[
@@ -150,10 +252,17 @@ export default function SettingsPage() {
           <div className="w-8 h-8 bg-orange-500 rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-orange-200">
             <Shield className="w-4 h-4 text-white" strokeWidth={2}/>
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-base font-bold text-stone-900 leading-tight">Settings</p>
             <p className="text-[11px] text-stone-400 leading-none">{active.label}</p>
           </div>
+          <button 
+            onClick={() => signOut()}
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors shrink-0"
+            title="Sign out"
+          >
+            <LogOut className="w-4 h-4"/>
+          </button>
         </div>
         {/* Mobile tab strip */}
         <div className="flex overflow-x-auto border-t border-stone-100 px-4 gap-0.5 pb-0">
