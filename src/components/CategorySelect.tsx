@@ -39,10 +39,10 @@ export default function CategorySelect({
     setSearch("");
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!search.trim() || exactMatch) return;
-    const cat = addCategory(search.trim());
-    onChange(cat.id);
+    const cat = await addCategory(search.trim());
+    if (cat) onChange(cat.id);
     setOpen(false);
     setSearch("");
   };

@@ -28,13 +28,14 @@ interface ViewContextType {
   addTask:            (task: Partial<Task>) => Promise<void>;
   // Dynamic categories
   allCategories:      CategoryDef[];
-  addCategory:        (label: string) => CategoryDef;
-  editCategory:       (id: string, newLabel: string, colorIndex?: number) => void;
-  deleteCategory:     (id: string, reassignToId?: string) => void;
+  addCategory:        (label: string) => Promise<CategoryDef | undefined>;
+  editCategory:       (id: string, newLabel: string, colorIndex?: number) => Promise<void>;
+  deleteCategory:     (id: string, reassignToId?: string) => Promise<void>;
   getTaskCount:       (id: string) => number;
   taskCategoryMap:    Record<string, string>; // taskId -> overridden category
   taskStatusMap:      Record<string, string>; // taskId -> overridden status
   updateTaskStatus:   (taskId: string, status: string) => void;
+  deleteTask:         (taskId: string) => Promise<void>;
 
   // Task Details Modal
   activeTaskId:       string | null;
@@ -223,9 +224,9 @@ export function ViewProvider({
       savedViews, saveCurrentView, loadView, deleteView, activeViewId, resetFilters,
       defaultViewId, setDefaultViewId, loadDefaultView,
       allCategories, addCategory, editCategory, deleteCategory: deleteCategoryMethod, getTaskCount, taskCategoryMap,
-      taskStatusMap, updateTaskStatus,
+      taskStatusMap, updateTaskStatus, deleteTask: deleteTaskMethod,
       activeTaskId, setActiveTaskId, taskDetailsMap, updateTaskDetails,
-      tasks, refreshTasks, addTask, deleteTask: deleteTaskMethod,
+      tasks, refreshTasks, addTask,
     }}>
       {children}
     </ViewContext.Provider>

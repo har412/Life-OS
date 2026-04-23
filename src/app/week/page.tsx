@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import TaskCard, { type Task } from "@/components/TaskCard";
+import TaskCard from "@/components/TaskCard";
+import { type Task } from "@/lib/taskData";
 import VoiceInputButton from "@/components/VoiceInputButton";
 
 const today = new Date();
@@ -23,11 +24,11 @@ function getWeekDays() {
 }
 
 const sampleTasks: Task[] = [
-  { id:"w1", title:"Review Q2 financial report",  category:"WORK",   priority:"HIGH",   status:"SCHEDULED", time:"10:00 AM", tags:["finance"] },
-  { id:"w2", title:"Pay home loan EMI",           category:"LOAN",   priority:"URGENT", status:"SCHEDULED", time:"11:00 AM", tags:["payment"] },
-  { id:"w3", title:"Call mom and check in",       category:"FAMILY", priority:"MEDIUM", status:"SCHEDULED", time:"6:00 PM",  tags:[] },
-  { id:"w4", title:"Fix leaking kitchen tap",     category:"HOME",   priority:"LOW",    status:"BACKLOG",   time:null,       tags:[] },
-  { id:"w5", title:"Evening walk",                category:"HEALTH", priority:"LOW",    status:"SCHEDULED", time:"7:00 PM",  tags:[] },
+  { id:"w1", title:"Review Q2 financial report",  category:"WORK",   priority:"HIGH",   status:"SCHEDULED",   time:"09:00", tags:["finance"], dueDate: null },
+  { id:"w2", title:"Pay home loan EMI",           category:"LOAN",   priority:"URGENT", status:"SCHEDULED",   time:"11:30", tags:[], dueDate: null },
+  { id:"w3", title:"Call mom and check in",       category:"FAMILY", priority:"MEDIUM", status:"SCHEDULED",   time:"18:00", tags:[], dueDate: null },
+  { id:"w4", title:"Fix leaking kitchen tap",     category:"HOME",   priority:"LOW",    status:"IN_PROGRESS", time:"14:00", tags:["repair"], dueDate: null },
+  { id:"w5", title:"Buy new running shoes",     category:"HEALTH", priority:"LOW",    status:"DONE",        time:"16:30", tags:[], dueDate: null },
 ];
 
 const weekDays = getWeekDays();

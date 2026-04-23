@@ -1,8 +1,8 @@
 "use client";
 import { useState, Fragment, useEffect } from "react";
 import { ChevronUp, ChevronDown, ChevronsUpDown, Pencil, Trash2, MessageSquare, Image as ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { PRIORITY_META, STATUS_META, formatDate, getCatMeta, type Task, type SortField, type GroupBy, PRIORITY_ORDER, STATUS_ORDER } from "@/lib/taskData";
-import { useView, type CategoryDef } from "@/lib/viewContext";
+import { PRIORITY_META, STATUS_META, formatDate, getCatMeta, type Task, type SortField, type GroupBy, PRIORITY_ORDER, STATUS_ORDER, type CategoryDef } from "@/lib/taskData";
+import { useView } from "@/lib/viewContext";
 
 
 function sortTasks(tasks: Task[], by: SortField, dir: "asc"|"desc") {
@@ -26,13 +26,13 @@ function groupTasks(tasks: Task[], by: GroupBy, allCategories: CategoryDef[]) {
     map.get(k)!.push(t);
   });
   return [...map.entries()].sort((a,b)=>{
-    if(by==="priority") return PRIORITY_ORDER[a[0] as any]-PRIORITY_ORDER[b[0] as any];
-    if(by==="status") return STATUS_ORDER[a[0] as any]-STATUS_ORDER[b[0] as any];
+    if(by==="priority") return (PRIORITY_ORDER as any)[a[0]] - (PRIORITY_ORDER as any)[b[0]];
+    if(by==="status") return (STATUS_ORDER as any)[a[0]] - (STATUS_ORDER as any)[b[0]];
     return a[0].localeCompare(b[0]);
   }).map(([key,tasks])=>({
     key,
-    label: by==="status"?STATUS_META[key as any].label:by==="category"?getCatMeta(key, allCategories).label:PRIORITY_META[key as any].label,
-    color: by==="status"?`${STATUS_META[key as any].badge} ${STATUS_META[key as any].text}`:by==="category"?`${getCatMeta(key, allCategories).badge} ${getCatMeta(key, allCategories).text}`:`${PRIORITY_META[key as any].badge} ${PRIORITY_META[key as any].text}`,
+    label: by==="status"?(STATUS_META as any)[key].label:by==="category"?getCatMeta(key, allCategories).label:(PRIORITY_META as any)[key]?.label||key,
+    color: by==="status"?`${(STATUS_META as any)[key].badge} ${(STATUS_META as any)[key].text}`:by==="category"?`${getCatMeta(key, allCategories).badge} ${getCatMeta(key, allCategories).text}`:`${(PRIORITY_META as any)[key]?.badge} ${(PRIORITY_META as any)[key]?.text}`||"",
     tasks,
   }));
 }

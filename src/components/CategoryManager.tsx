@@ -126,8 +126,8 @@ function CategoryRow({ cat }: { cat: CategoryDef }) {
   const isBuiltIn   = BUILT_IN_CATEGORIES.some(c => c.id === cat.id);
   const activeDot   = editColorIdx !== undefined ? COLOR_SWATCHES[editColorIdx].bg : cat.dot;
 
-  function saveEdit() {
-    if (editLabel.trim()) editCategory(cat.id, editLabel.trim(), editColorIdx);
+  async function saveEdit() {
+    if (editLabel.trim()) await editCategory(cat.id, editLabel.trim(), editColorIdx);
     setEditing(false);
     setShowPicker(false);
     setEditColorIdx(undefined);
@@ -225,7 +225,7 @@ function CategoryRow({ cat }: { cat: CategoryDef }) {
           cat={cat}
           taskCount={taskCount}
           allCats={allCategories}
-          onConfirm={reassignTo => { deleteCategory(cat.id, reassignTo); setConfirmDel(false); }}
+          onConfirm={async (reassignTo) => { await deleteCategory(cat.id, reassignTo); setConfirmDel(false); }}
           onCancel={() => setConfirmDel(false)}
         />
       )}
@@ -239,9 +239,9 @@ function AddCategoryRow() {
   const [open,  setOpen]  = useState(false);
   const [label, setLabel] = useState("");
 
-  function save() {
+  async function save() {
     if (!label.trim()) return;
-    addCategory(label.trim());
+    await addCategory(label.trim());
     setLabel("");
     setOpen(false);
   }

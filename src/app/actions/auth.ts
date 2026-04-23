@@ -40,7 +40,7 @@ export async function registerUser(formData: FormData) {
         create: PRESET_SAVED_VIEWS.map(view => ({
           name: view.name,
           emoji: view.emoji,
-          filters: view.filters, // filters is Json in schema, can take object
+          filters: view.filters as any,
           isDefault: view.name === "Today",
         })),
       }

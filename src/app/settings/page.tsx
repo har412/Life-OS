@@ -135,7 +135,7 @@ export default function SettingsPage() {
     notifications: <NotificationsTab/>,
     account:       <AccountTab/>,
     // display:       <DisplayTab/>,
-  } as Record<Tab, JSX.Element>;
+  } as Record<Tab, React.ReactNode>;
 
   const active = TABS.find(t => t.id === activeTab)!;
 

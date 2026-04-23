@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { X, Mic, ChevronDown, UploadCloud, Trash2 } from "lucide-react";
-import { PRIORITY_META } from "@/lib/taskData";
+import { PRIORITY_META, type Priority } from "@/lib/taskData";
 import { useView } from "@/lib/viewContext";
 import CategorySelect from "@/components/CategorySelect";
 
@@ -14,7 +14,7 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
   const [tab,      setTab]    = useState<"manual"|"voice">("manual");
   const [title,    setTitle]  = useState("");
   const [catId,    setCatId]  = useState("WORK");
-  const [pri,      setPri]    = useState("MEDIUM");
+  const [pri,      setPri]    = useState<Priority>("MEDIUM");
   const [date,     setDate]   = useState("");
   const [time,     setTime]   = useState("");
   const [desc,     setDesc]   = useState("");
@@ -28,8 +28,8 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
       title,
       categoryId: catId,
       priority: pri,
-      dueDate: date ? new Date(date) : undefined,
-      time: time || undefined,
+      dueDate: date || null,
+      time: time || null,
       description: desc,
       images,
     };
@@ -123,7 +123,7 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
                             : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
                         }`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${PRIORITY_META[p as any].dot}`}/>
+                        <span className={`w-1.5 h-1.5 rounded-full ${PRIORITY_META[p as Priority].dot}`}/>
                         {p.charAt(0) + p.slice(1).toLowerCase()}
                       </button>
                     );

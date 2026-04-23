@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Search, CalendarRange } from "lucide-react";
-import TaskCard, { type Task } from "@/components/TaskCard";
+import TaskCard from "@/components/TaskCard";
+import { type Task } from "@/lib/taskData";
 import VoiceInputButton from "@/components/VoiceInputButton";
 
 const catStyle: Record<string, { dot: string; label: string; badge: string; text: string }> = {
@@ -16,31 +17,31 @@ const catStyle: Record<string, { dot: string; label: string; badge: string; text
 
 const backlog: { cat: string; tasks: Task[] }[] = [
   { cat:"WORK", tasks:[
-    { id:"b1", title:"Prepare Q3 roadmap presentation", category:"WORK", priority:"HIGH",   status:"BACKLOG", tags:["planning"] },
-    { id:"b2", title:"Update team confluence docs",      category:"WORK", priority:"LOW",    status:"BACKLOG", tags:["docs"] },
-    { id:"b3", title:"Research new deployment pipeline", category:"WORK", priority:"MEDIUM", status:"BACKLOG", tags:["devops"] },
+    { id:"b1", title:"Prepare Q3 roadmap presentation", category:"WORK", priority:"HIGH",   status:"BACKLOG", tags:["planning"], dueDate: null },
+    { id:"b2", title:"Update team confluence docs",      category:"WORK", priority:"LOW",    status:"BACKLOG", tags:["docs"], dueDate: null },
+    { id:"b3", title:"Research new deployment pipeline", category:"WORK", priority:"MEDIUM", status:"BACKLOG", tags:["devops"], dueDate: null },
   ]},
   { cat:"LOAN", tasks:[
-    { id:"b4", title:"Foreclose personal loan early",   category:"LOAN", priority:"HIGH",   status:"BACKLOG", tags:["finance"] },
-    { id:"b5", title:"Car loan refinance check",        category:"LOAN", priority:"MEDIUM", status:"BACKLOG", tags:[] },
-    { id:"b6", title:"Review credit card statement",    category:"LOAN", priority:"MEDIUM", status:"BACKLOG", tags:["payment"] },
+    { id:"b4", title:"Foreclose personal loan early",   category:"LOAN", priority:"HIGH",   status:"BACKLOG", tags:["finance"], dueDate: null },
+    { id:"b5", title:"Car loan refinance check",        category:"LOAN", priority:"MEDIUM", status:"BACKLOG", tags:[], dueDate: null },
+    { id:"b6", title:"Review credit card statement",    category:"LOAN", priority:"MEDIUM", status:"BACKLOG", tags:["payment"], dueDate: null },
   ]},
   { cat:"HOME", tasks:[
-    { id:"b7", title:"Fix leaking kitchen tap",         category:"HOME", priority:"LOW",    status:"BACKLOG", tags:["repair"] },
-    { id:"b8", title:"Deep clean bedroom",              category:"HOME", priority:"LOW",    status:"BACKLOG", tags:[] },
-    { id:"b9", title:"Repaint living room wall",        category:"HOME", priority:"LOW",    status:"BACKLOG", tags:[] },
+    { id:"b7", title:"Fix leaking kitchen tap",         category:"HOME", priority:"LOW",    status:"BACKLOG", tags:["repair"], dueDate: null },
+    { id:"b8", title:"Deep clean bedroom",              category:"HOME", priority:"LOW",    status:"BACKLOG", tags:[], dueDate: null },
+    { id:"b9", title:"Repaint living room wall",        category:"HOME", priority:"LOW",    status:"BACKLOG", tags:[], dueDate: null },
   ]},
   { cat:"HEALTH", tasks:[
-    { id:"b10", title:"Book annual health checkup",     category:"HEALTH", priority:"HIGH",   status:"BACKLOG", tags:[] },
-    { id:"b11", title:"Start meditation routine",       category:"HEALTH", priority:"MEDIUM", status:"BACKLOG", tags:["mindfulness"] },
+    { id:"b10", title:"Book annual health checkup",     category:"HEALTH", priority:"HIGH",   status:"BACKLOG", tags:[], dueDate: null },
+    { id:"b11", title:"Start meditation routine",       category:"HEALTH", priority:"MEDIUM", status:"BACKLOG", tags:["mindfulness"], dueDate: null },
   ]},
   { cat:"FAMILY", tasks:[
-    { id:"b12", title:"Plan family reunion trip",       category:"FAMILY", priority:"MEDIUM", status:"BACKLOG", tags:["travel"] },
-    { id:"b13", title:"Dad's birthday gift shopping",   category:"FAMILY", priority:"HIGH",   status:"BACKLOG", tags:[] },
+    { id:"b12", title:"Plan family reunion trip",       category:"FAMILY", priority:"MEDIUM", status:"BACKLOG", tags:["travel"], dueDate: null },
+    { id:"b13", title:"Dad's birthday gift shopping",   category:"FAMILY", priority:"HIGH",   status:"BACKLOG", tags:[], dueDate: null },
   ]},
   { cat:"FRIENDS", tasks:[
-    { id:"b14", title:"Plan Rahul's farewell dinner",   category:"FRIENDS", priority:"HIGH", status:"BACKLOG", tags:["event"] },
-    { id:"b15", title:"Return book to Priya",           category:"FRIENDS", priority:"LOW",  status:"BACKLOG", tags:[] },
+    { id:"b14", title:"Plan Rahul's farewell dinner",   category:"FRIENDS", priority:"HIGH", status:"BACKLOG", tags:["event"], dueDate: null },
+    { id:"b15", title:"Return book to Priya",           category:"FRIENDS", priority:"LOW",  status:"BACKLOG", tags:[], dueDate: null },
   ]},
 ];
 

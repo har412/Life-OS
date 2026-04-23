@@ -24,8 +24,7 @@ export function startAlertWorker() {
         // Create Alert record
         await prisma.alert.create({
           data: {
-            title: `Reminder: ${task.title}`,
-            message: task.description || "Task due now!",
+            message: `Reminder: ${task.title} - ${task.description || "Task due now!"}`,
             type: "TASK_REMINDER",
             userId: userId,
             taskId: taskId,
