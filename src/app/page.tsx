@@ -2,10 +2,11 @@
 import dynamic from "next/dynamic";
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus, AlertTriangle, CheckCircle2, ChevronDown, Check, Settings, LogOut } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { Plus, AlertTriangle, CheckCircle2, ChevronDown, Check, Settings, LogOut, GripVertical, Trash2 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useView } from "@/lib/viewContext";
-import { type SortField } from "@/lib/taskData";
+import { type SortField, PRESET_SAVED_VIEWS } from "@/lib/taskData";
 import FilterBar from "@/components/FilterBar";
 import WeekView from "@/components/views/WeekView";
 import TableView from "@/components/views/TableView";
@@ -84,10 +85,20 @@ function ProgressStrip({ total, done, overdue }: { total:number; done:number; ov
 
 /* ─── Page ────────────────────────────────── */
 export default function TasksPage() {
-  const { tasks, filters, updateFilter, activeViewId, savedViews, taskCategoryMap, taskStatusMap, loadView, resetFilters, activeTaskId } = useView();
+  const { tasks, filters, updateFilter, activeViewId, savedViews, taskCategoryMap, taskStatusMap, loadView, resetFilters, activeTaskId, reorderViews, deleteView } = useView();
   const [modal, setModal]   = useState(false);
   const [search, setSearch] = useState("");
   const [mobileViewsOpen, setMobileViewsOpen] = useState(false);
+
+  const onDragEnd = (result: any) => {
+    if (!result.destination) return;
+    
+    const items = Array.from(savedViews);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    reorderViews(items.map(v => v.id));
+  };
 
   const activeView = savedViews.find(v => v.id === activeViewId);
   const pageTitle  = activeView ? `${activeView.emoji} ${activeView.name}` : "Tasks";
@@ -151,16 +162,63 @@ export default function TasksPage() {
             {mobileViewsOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMobileViewsOpen(false)}/>
-                <div className="absolute top-full left-0 mt-3 w-64 bg-white border border-stone-200 rounded-2xl shadow-xl z-50 py-2 flex flex-col max-h-[60vh] overflow-y-auto">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 px-3.5 py-1.5">Views</p>
+                <div className="absolute top-full left-0 mt-3 w-72 bg-white border border-stone-200 rounded-2xl shadow-xl z-50 py-2 flex flex-col max-h-[60vh] overflow-hidden">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 px-4 py-2 border-b border-stone-50">Views</p>
 
-                  {savedViews.map(v => (
-                    <button key={v.id} onClick={() => { loadView(v); setMobileViewsOpen(false); }} className={`flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium transition-colors ${activeViewId === v.id ? "bg-orange-50 text-orange-700" : "hover:bg-stone-50 text-stone-700"}`}>
-                      <span className="w-5 text-center text-base">{v.emoji}</span>
-                      <span className="flex-1 text-left truncate">{v.name}</span>
-                      {activeViewId === v.id && <Check className="w-4 h-4 text-orange-500"/>}
-                    </button>
-                  ))}
+                  <div className="flex-1 overflow-y-auto">
+                    <DragDropContext onDragEnd={onDragEnd}>
+                      <Droppable droppableId="mobile-views-list">
+                        {(provided) => (
+                          <div {...provided.droppableProps} ref={provided.innerRef}>
+                            {savedViews.map((v, index) => {
+                              const isPreset = PRESET_SAVED_VIEWS.some(p => p.id === v.id);
+                              return (
+                                <Draggable key={v.id} draggableId={v.id} index={index}>
+                                  {(provided, snapshot) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      className={`flex items-center gap-1 px-2 py-0.5 transition-colors ${activeViewId === v.id ? "bg-orange-50" : snapshot.isDragging ? "bg-stone-50" : ""}`}
+                                    >
+                                      <div {...provided.dragHandleProps} className="p-2 text-stone-300 shrink-0">
+                                        <GripVertical className="w-4 h-4"/>
+                                      </div>
+                                      
+                                      <button 
+                                        onClick={() => { loadView(v); setMobileViewsOpen(false); }} 
+                                        className="flex-1 flex items-center gap-2.5 py-2.5 text-sm font-medium text-left min-w-0"
+                                      >
+                                        <span className="w-5 text-center text-base shrink-0">{v.emoji}</span>
+                                        <span className={`flex-1 truncate ${activeViewId === v.id ? "text-orange-700" : "text-stone-700"}`}>{v.name}</span>
+                                      </button>
+
+                                      <div className="flex items-center gap-1 pr-2 shrink-0">
+                                        {activeViewId === v.id && <Check className="w-4 h-4 text-orange-500"/>}
+                                        {!isPreset && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (confirm(`Delete view "${v.name}"?`)) {
+                                                deleteView(v.id);
+                                              }
+                                            }}
+                                            className="p-2 text-stone-300 hover:text-red-500 transition-colors"
+                                          >
+                                            <Trash2 className="w-4 h-4"/>
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              );
+                            })}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </DragDropContext>
+                  </div>
                 </div>
               </>
             )}
