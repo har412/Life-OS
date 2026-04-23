@@ -151,7 +151,7 @@ export async function deleteTask(id: string) {
   revalidatePath("/");
   
   // Remove scheduled alert
-  const job = await alertQueue.getJob(`alert-${id}`);
+  const job = await alertQueue?.getJob(`alert-${id}`);
   if (job) await job.remove();
 
   return { success: true };
