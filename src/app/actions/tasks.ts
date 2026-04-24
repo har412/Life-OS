@@ -37,6 +37,7 @@ export async function createTask(incomingData: any) {
   }
   if (data.dueDate) {
     data.dueDate = new Date(data.dueDate);
+    data.status = 'SCHEDULED';
   } else if (data.dueDate === null) {
     data.dueDate = null;
   }
@@ -77,6 +78,21 @@ export async function updateTask(id: string, incomingData: any) {
   if (!session?.user?.id) return { error: "Unauthorized" };
 
   const data = { ...incomingData };
+
+  // 0. Business logic: backlog should not have due date
+  if (data.status === 'BACKLOG') {
+    data.dueDate = null;
+    data.time = null;
+  } else if (data.dueDate && !data.status) {
+    // If adding a date to a task that might be in BACKLOG, move it to SCHEDULED
+    const currentTask = await prisma.task.findUnique({ 
+      where: { id, userId: session.user.id },
+      select: { status: true }
+    });
+    if (currentTask?.status === 'BACKLOG') {
+      data.status = 'SCHEDULED';
+    }
+  }
 
   // 1. Sanitize category -> categoryId
   if (data.category !== undefined) {

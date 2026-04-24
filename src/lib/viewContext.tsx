@@ -111,7 +111,12 @@ export function ViewProvider({
 
   const updateTaskStatus = useCallback(async (taskId: string, status: string) => {
     // Optimistic update
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: status as any } : t));
+    const isBacklog = status === 'BACKLOG';
+    setTasks(prev => prev.map(t => t.id === taskId ? { 
+      ...t, 
+      status: status as any,
+      ...(isBacklog ? { dueDate: null, time: null } : {})
+    } : t));
     setTaskStatMap(prev => ({ ...prev, [taskId]: status }));
     
     const res = await updateTask(taskId, { status });
@@ -124,11 +129,27 @@ export function ViewProvider({
 
   const updateTaskDetails = useCallback(async (taskId: string, details: Partial<Task>) => {
     // Optimistic update
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...details } : t));
-    setTaskDetailsMap(prev => ({
-      ...prev,
-      [taskId]: { ...(prev[taskId] || {}), ...details }
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      const updated = { ...t, ...details };
+      if (updated.status === 'BACKLOG') {
+        updated.dueDate = null;
+        updated.time = null;
+      } else if (details.dueDate && t.status === 'BACKLOG' && !details.status) {
+        updated.status = 'SCHEDULED' as any;
+      }
+      return updated;
     }));
+
+    setTaskDetailsMap(prev => {
+      const existing = prev[taskId] || {};
+      const updated = { ...existing, ...details };
+      if (updated.status === 'BACKLOG') {
+        updated.dueDate = null;
+        updated.time = null;
+      }
+      return { ...prev, [taskId]: updated };
+    });
     
     const res = await updateTask(taskId, details);
     if (res.task) {

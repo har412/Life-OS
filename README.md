@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Life-OS (Task and Alert Management)
 
-## Getting Started
+Life-OS is a comprehensive task and alert management system built with Next.js. It features a rich interface for managing tasks across different views (Table, Kanban, Week), categorizing them, setting priorities, and handling alerts.
 
-First, run the development server:
+## 🚀 Features
+- **Dynamic Views**: Table, Kanban, and Week views for task management.
+- **Backlog Management**: Strict rules to keep backlog clean (no due dates in backlog).
+- **Smart Scheduling**: Automatic status transitions when adding/removing due dates.
+- **Categories & Priorities**: Custom categories with color coding and priority levels.
+- **Alert System**: Scheduled notifications via BullMQ.
+- **Voice Input**: Create tasks using voice commands.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🛠 Technology Stack
+- **Framework**: [Next.js 15+](https://nextjs.org) (App Router)
+- **Database**: PostgreSQL with [Prisma ORM](https://www.prisma.io/)
+- **Authentication**: [NextAuth.js](https://next-auth.js.org/) (Auth.js)
+- **Styling**: [TailwindCSS](https://tailwindcss.com/)
+- **Icons**: [Lucide-react](https://lucide.dev/)
+- **Background Tasks**: [BullMQ](https://docs.bullmq.io/) (for scheduling alerts)
+
+## 📁 Project Structure
+- `src/app/`: Next.js App Router routes and Server Actions.
+  - `actions/`: Server actions for Tasks, Categories, and Views.
+- `src/components/`: React components (Modals, Task Cards, Filters, Layouts).
+- `src/lib/`: Utility functions, Prisma client, and Shared Context.
+  - `viewContext.tsx`: Main React Context for managing app state.
+  - `taskData.ts`: Type definitions and metadata constants.
+- `prisma/`: Database schema and migrations.
+
+## 🚦 Getting Started
+
+### Prerequisites
+- Node.js installed
+- PostgreSQL database
+- Redis (for BullMQ)
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up your environment variables in a `.env` file (see `.env.example`).
+4. Run Prisma migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
+5. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🧠 Core Business Logic
+- **Backlog Integrity**: 
+  - Backlog tasks **cannot have due dates or times**.
+  - Moving a task to `BACKLOG` automatically clears its `dueDate`.
+  - Adding a `dueDate` to a `BACKLOG` task moves it to `SCHEDULED`.
+- **Task Creation**: Adding a `dueDate` during creation defaults the status to `SCHEDULED`.
+- **Alerts**: Scheduled based on task `dueDate` and `time`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📄 License
+This project is for personal use.
