@@ -26,6 +26,8 @@ export const metadata: Metadata = {
 };
 
 
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   
@@ -88,6 +90,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           initialCategories={safeCategories} 
           initialViews={safeViews}
         >
+          <ServiceWorkerRegistration />
           {children}
         </AppLayout>
       </body>
