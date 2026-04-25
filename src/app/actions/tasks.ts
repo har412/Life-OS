@@ -25,7 +25,8 @@ export async function createTask(incomingData: any) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  const data = { ...incomingData };
+  const { timezoneOffset, ...taskData } = incomingData;
+  const data = { ...taskData };
 
   // Sanitize for Prisma
   if (data.id) delete data.id; // Let Prisma generate it
@@ -57,17 +58,30 @@ export async function createTask(incomingData: any) {
     const alertTime = new Date(task.dueDate);
     const [hours, minutes] = task.time.split(':').map(Number);
     alertTime.setHours(hours || 0, minutes || 0, 0, 0);
+    
+    // Adjust for the user's local timezone
+    if (timezoneOffset !== undefined) {
+      alertTime.setMinutes(alertTime.getMinutes() + Number(timezoneOffset));
+    }
 
-    const delay = Math.floor((alertTime.getTime() - Date.now()) / 1000); // QStash uses seconds for delay
-    console.log(`📅 Scheduling QStash alert for ${alertTime.toISOString()} (Delay: ${delay}s)`);
+    const now = new Date();
+    const delay = Math.floor((alertTime.getTime() - now.getTime()) / 1000);
+    
+    console.log(`⏰ Current Server Time: ${now.toISOString()}`);
+    console.log(`📅 Target Alert Time:  ${alertTime.toISOString()}`);
+    console.log(`⏳ Calculated Delay:   ${delay} seconds`);
     
     if (delay > 0) {
-      await qstashClient.publishJSON({
-        url: `${APP_URL}/api/alerts/trigger`,
-        body: { taskId: task.id, userId: session.user.id },
-        delay: delay,
-      });
-      console.log(`✅ Message published to QStash`);
+      try {
+        const res = await qstashClient.publishJSON({
+          url: `${APP_URL}/api/alerts/trigger`,
+          body: { taskId: task.id, userId: session.user.id },
+          delay: delay,
+        });
+        console.log(`✅ Message published to QStash (ID: ${res.messageId})`);
+      } catch (err) {
+        console.error("❌ Failed to publish to QStash:", err);
+      }
     } else {
       console.log(`⚠️ Delay is negative (${delay}s), skipping QStash publish.`);
     }
@@ -80,7 +94,7 @@ export async function updateTask(id: string, incomingData: any) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  const data = { ...incomingData };
+  const { timezoneOffset, ...data } = incomingData;
 
   // 0. Business logic: backlog should not have due date
   if (data.status === 'BACKLOG') {
@@ -141,16 +155,29 @@ export async function updateTask(id: string, incomingData: any) {
     const [hours, minutes] = task.time.split(':').map(Number);
     alertTime.setHours(hours || 0, minutes || 0, 0, 0);
 
-    const delay = Math.floor((alertTime.getTime() - Date.now()) / 1000);
-    console.log(`📅 Rescheduling QStash alert for ${alertTime.toISOString()} (Delay: ${delay}s)`);
+    // Adjust for the user's local timezone
+    if (timezoneOffset !== undefined) {
+      alertTime.setMinutes(alertTime.getMinutes() + Number(timezoneOffset));
+    }
+
+    const now = new Date();
+    const delay = Math.floor((alertTime.getTime() - now.getTime()) / 1000);
+    
+    console.log(`⏰ Current Server Time: ${now.toISOString()}`);
+    console.log(`📅 Target Alert Time:  ${alertTime.toISOString()}`);
+    console.log(`⏳ Calculated Delay:   ${delay} seconds`);
 
     if (delay > 0) {
-      await qstashClient.publishJSON({
-        url: `${APP_URL}/api/alerts/trigger`,
-        body: { taskId: task.id, userId: session.user.id },
-        delay: delay,
-      });
-      console.log(`✅ New message published to QStash`);
+      try {
+        const res = await qstashClient.publishJSON({
+          url: `${APP_URL}/api/alerts/trigger`,
+          body: { taskId: task.id, userId: session.user.id },
+          delay: delay,
+        });
+        console.log(`✅ New message published to QStash (ID: ${res.messageId})`);
+      } catch (err) {
+        console.error("❌ Failed to reschedule on QStash:", err);
+      }
     }
   }
 
