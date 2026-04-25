@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Get User AI Settings
-    const settings = await prisma.aiSettings.findUnique({
+    const settings = await prisma.aISettings.findUnique({
       where: { userId: session.user.id },
     });
 

@@ -14,7 +14,7 @@ export async function saveAISettings(data: {
   if (!session?.user?.id) return { error: "Unauthorized" };
 
   try {
-    await prisma.aiSettings.upsert({
+    await prisma.aISettings.upsert({
       where: { userId: session.user.id },
       update: {
         provider: data.provider,
@@ -43,7 +43,7 @@ export async function getAISettings() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  return await prisma.aiSettings.findUnique({
+  return await prisma.aISettings.findUnique({
     where: { userId: session.user.id },
   });
 }
