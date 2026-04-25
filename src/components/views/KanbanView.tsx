@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { ChevronLeft, ChevronRight, Plus, MessageSquare, Image as ImageIcon } from "lucide-react";
 import { getCatMeta, PRIORITY_META, formatDate, type Task, type Status } from "@/lib/taskData";
@@ -88,10 +88,10 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
     setQuickAddTitle("");
   };
 
-  // Sync when parent filter changes
-  const prevIds = taskState.map(t => t.id).sort().join();
-  const newIds  = tasks.map(t => t.id).sort().join();
-  if (prevIds !== newIds) setTaskState(tasks);
+  // Sync when props change (including title/status/etc)
+  useEffect(() => {
+    setTaskState(tasks);
+  }, [tasks]);
 
   function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result;
