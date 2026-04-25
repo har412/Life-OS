@@ -1,13 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CheckSquare, BookOpen, BarChart3, Settings } from "lucide-react";
+import { CheckSquare, Bell, Settings } from "lucide-react";
 
 const tabs = [
-  { href:"/",        label:"Tasks",   icon:CheckSquare },
-  // { href:"/notes",   label:"Journal", icon:BookOpen },
-  // { href:"/summary", label:"Summary", icon:BarChart3 },
-  { href:"/settings",label:"Settings",icon:Settings },
+  { href: "/", label: "Tasks", icon: CheckSquare },
+  { href: "/notifications", label: "Inbox", icon: Bell },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function MobileNav() {

@@ -1,5 +1,6 @@
 "use client";
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   type FilterState, type SavedView, type CategoryDef, type Task,
   DEFAULT_FILTERS, PRESET_SAVED_VIEWS, BUILT_IN_CATEGORIES, CUSTOM_CAT_COLORS,
@@ -85,6 +86,14 @@ export function ViewProvider({
   const [taskStatusMap,   setTaskStatMap] = useState<Record<string,string>>({});
   const [activeTaskId,    setActiveTaskId]= useState<string | null>(null);
   const [taskDetailsMap,  setTaskDetailsMap] = useState<Record<string, Partial<Task>>>({});
+  
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const tid = searchParams?.get("taskId");
+    if (tid && tid !== activeTaskId) {
+      setActiveTaskId(tid);
+    }
+  }, [searchParams, activeTaskId]);
 
   const refreshTasks = useCallback(async () => {
     // In a real app, we might fetch here, but Next.js Server Actions 
