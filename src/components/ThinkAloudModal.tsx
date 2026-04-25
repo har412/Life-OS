@@ -192,72 +192,91 @@ export default function ThinkAloudModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {proposedTasks.length > 0 && (
+          {/* Result State */}
+          {(transcript || proposedTasks.length > 0) && !isProcessing && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="bg-stone-50 rounded-2xl p-4 border border-stone-100">
-                <p className="text-xs font-bold text-stone-400 uppercase mb-2">Transcript Summary</p>
-                <p className="text-sm text-stone-600 italic">"{transcript}"</p>
+                <p className="text-xs font-bold text-stone-400 uppercase mb-2">What I heard</p>
+                <p className="text-sm text-stone-600 italic">"{transcript || "No speech detected."}"</p>
               </div>
 
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                  Extracted Tasks <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full text-[10px]">{proposedTasks.length} Found</span>
-                </h4>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => setProposedTasks([])}
-                    className="text-[10px] font-bold uppercase text-stone-400 hover:text-red-500 transition-colors"
-                  >
-                    Discard All
-                  </button>
-                  <button 
-                    onClick={handleAddAll}
-                    disabled={savingAll}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-[10px] font-bold uppercase hover:bg-emerald-600 transition-colors disabled:opacity-50"
-                  >
-                    {savingAll ? "Adding..." : <><Plus className="w-3 h-3" /> Add All</>}
-                  </button>
-                </div>
-              </div>
-                <div className="space-y-3">
-                  {proposedTasks.map((task, i) => (
-                    <div key={i} className="bg-white border border-stone-200 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-300 transition-colors group">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-stone-900 truncate">{task.title}</p>
-                        <div className="flex flex-wrap items-center gap-3 mt-2">
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-stone-400">
-                            <Calendar className="w-3 h-3" /> {task.dueDate || "No date"}
-                          </span>
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-stone-400">
-                            <Tag className="w-3 h-3" /> {task.categoryId}
-                          </span>
-                          <span className={`text-[10px] font-bold uppercase ${
-                            task.priority === 'URGENT' ? 'text-red-500' : 'text-orange-500'
-                          }`}>
-                            {task.priority}
-                          </span>
-                        </div>
-                      </div>
+              {proposedTasks.length > 0 ? (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                      Extracted Tasks <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full text-[10px]">{proposedTasks.length} Found</span>
+                    </h4>
+                    <div className="flex items-center gap-2">
                       <button 
-                        onClick={() => handleAddTask(task)}
-                        className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-600 hover:text-white transition-all shadow-sm active:scale-90"
+                        onClick={() => setProposedTasks([])}
+                        className="text-[10px] font-bold uppercase text-stone-400 hover:text-red-500 transition-colors"
                       >
-                        <Plus className="w-5 h-5" />
+                        Discard All
+                      </button>
+                      <button 
+                        onClick={handleAddAll}
+                        disabled={savingAll}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-[10px] font-bold uppercase hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                      >
+                        {savingAll ? "Adding..." : <><Plus className="w-3 h-3" /> Add All</>}
                       </button>
                     </div>
-                  ))}
+                  </div>
+                  <div className="space-y-3">
+                    {proposedTasks.map((task, i) => (
+                      <div key={i} className="bg-white border border-stone-200 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-300 transition-colors group">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-stone-900 truncate">{task.title}</p>
+                          <div className="flex flex-wrap items-center gap-3 mt-2">
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-stone-400">
+                              <Calendar className="w-3 h-3" /> {task.dueDate || "No date"}
+                            </span>
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-stone-400">
+                              <Tag className="w-3 h-3" /> {task.categoryId}
+                            </span>
+                            <span className={`text-[10px] font-bold uppercase ${
+                              task.priority === 'URGENT' ? 'text-red-500' : 'text-orange-500'
+                            }`}>
+                              {task.priority}
+                            </span>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => handleAddTask(task)}
+                          className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-600 hover:text-white transition-all shadow-sm active:scale-90"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              ) : (
+                <div className="text-center py-8 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+                  <p className="text-sm font-medium text-stone-500">I couldn't find any specific tasks in that recording.</p>
+                  <p className="text-xs text-stone-400 mt-1">Try saying things like "I need to..." or "Don't forget to..."</p>
+                </div>
+              )}
 
-                <div className="pt-4 border-t border-stone-100">
-                  <button 
-                    onClick={onClose}
-                    className="w-full py-3 rounded-2xl bg-stone-900 text-white text-sm font-bold hover:bg-black transition-colors"
-                  >
-                    Done
-                  </button>
-                </div>
+              <div className="pt-4 border-t border-stone-100">
+                <button 
+                  onClick={() => {
+                    setTranscript("");
+                    setProposedTasks([]);
+                  }}
+                  className="w-full py-3 rounded-2xl bg-stone-100 text-stone-600 text-sm font-bold hover:bg-stone-200 transition-colors mb-2"
+                >
+                  Record Again
+                </button>
+                <button 
+                  onClick={onClose}
+                  className="w-full py-3 rounded-2xl bg-stone-900 text-white text-sm font-bold hover:bg-black transition-colors"
+                >
+                  Close
+                </button>
               </div>
-            )}
+            </div>
+          )}
         </div>
       </div>
     </div>
