@@ -23,13 +23,22 @@ export default function PushSubscriptionManager() {
   }
 
   async function subscribeToPush() {
+    console.log("🖱️ Subscribe button clicked");
     try {
+      if (!("serviceWorker" in navigator)) {
+        alert("Service Workers not supported in this browser");
+        return;
+      }
+
       const registration = await navigator.serviceWorker.ready;
+      console.log("👷 Service Worker Ready");
       
       // Request permission
       const permission = await Notification.requestPermission();
+      console.log("🔑 Permission:", permission);
+      
       if (permission !== "granted") {
-        alert("Permission not granted for notifications");
+        alert("Permission denied. Please enable notifications in your browser settings.");
         return;
       }
 
@@ -38,14 +47,19 @@ export default function PushSubscriptionManager() {
         applicationServerKey: VAPID_PUBLIC_KEY,
       });
 
+      console.log("📡 Subscription created:", subscription);
+
       // Save to server
       const res = await saveSubscription(JSON.parse(JSON.stringify(subscription)));
       if (res.success) {
         setIsSubscribed(true);
-        console.log("✅ Subscribed to push notifications");
+        alert("✅ Success! You will now receive mobile alerts.");
+      } else {
+        alert("❌ Server failed to save subscription: " + res.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Failed to subscribe to push:", error);
+      alert("❌ Error: " + error.message);
     }
   }
 
