@@ -133,6 +133,13 @@ export function ViewProvider({
       // Final sync with backend data
       const updated = { ...res.task, category: res.task.categoryId } as any;
       setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
+      
+      // Clear status override
+      setTaskStatMap(prev => {
+        const next = { ...prev };
+        delete next[taskId];
+        return next;
+      });
     }
   }, []);
 
@@ -162,9 +169,21 @@ export function ViewProvider({
     
     const res = await updateTask(taskId, { ...details, timezoneOffset: new Date().getTimezoneOffset() });
     if (res.task) {
-      // Final sync with backend data
-      const updated = { ...res.task, category: res.task.categoryId } as any;
+      // Final sync with backend data to ensure we have the correct DB state
+      const updated = { 
+        ...res.task, 
+        category: res.task.categoryId,
+        comments: res.task.comments || []
+      } as any;
+      
       setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
+      
+      // Clear the override map for this task once synced
+      setTaskDetailsMap(prev => {
+        const next = { ...prev };
+        delete next[taskId];
+        return next;
+      });
     }
   }, []);
 
