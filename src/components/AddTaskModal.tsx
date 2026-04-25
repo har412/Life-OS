@@ -6,7 +6,12 @@ import { useView } from "@/lib/viewContext";
 import CategorySelect from "@/components/CategorySelect";
 
 const PRIS = ["LOW","MEDIUM","HIGH","URGENT"] as const;
-const priColors: Record<string,string> = { LOW:"stone",MEDIUM:"amber",HIGH:"orange",URGENT:"red" };
+const PRI_META_LOCAL: Record<string, { label: string; bg: string; text: string; border: string; dot: string }> = {
+  LOW:    { label: "Low",    bg: "bg-stone-50",    text: "text-stone-600",  border: "border-stone-200",  dot: "bg-stone-300" },
+  MEDIUM: { label: "Medium", bg: "bg-amber-50",    text: "text-amber-700",  border: "border-amber-200",  dot: "bg-amber-400" },
+  HIGH:   { label: "High",   bg: "bg-orange-50",   text: "text-orange-700", border: "border-orange-200", dot: "bg-orange-500" },
+  URGENT: { label: "Urgent", bg: "bg-red-50",      text: "text-red-700",    border: "border-red-200",    dot: "bg-red-500" },
+};
 
 export default function AddTaskModal({ onClose }: { onClose: () => void }) {
   const { allCategories, addTask } = useView();
@@ -92,7 +97,6 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
         if (first.priority) setPri(first.priority);
         if (first.reminderOffset !== undefined) setReminder(first.reminderOffset ?? 0);
         
-        // Auto-switch to manual tab for review/edit
         setTab("manual");
         if (first.description) setShowDetails(true);
       }
@@ -140,122 +144,138 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={onClose}/>
-      <div className="relative w-full sm:max-w-xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border-t sm:border border-stone-200 overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full sm:max-w-xl bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl border-t sm:border border-stone-100 overflow-hidden max-h-[95vh] flex flex-col animate-in fade-in zoom-in-95 duration-300">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 shrink-0 bg-stone-50/50">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-100">
-              <Plus className="w-5 h-5" />
+        <div className="flex items-center justify-between px-8 py-6 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-200">
+              <Plus className="w-6 h-6" />
             </div>
-            <h2 className="text-lg font-bold text-stone-900">Add New Task</h2>
+            <h2 className="text-xl font-bold text-stone-900 tracking-tight">New Task</h2>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-200 transition-colors">
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-2xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all">
             <X className="w-5 h-5"/>
           </button>
         </div>
 
         {/* Tab Selection */}
-        <div className="flex p-2 bg-stone-100/50 mx-6 mt-4 rounded-2xl shrink-0">
+        <div className="flex p-1.5 bg-stone-50 mx-8 rounded-2xl border border-stone-100 shrink-0">
           <button 
             onClick={() => setTab("voice")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${tab === "voice" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${tab === "voice" ? "bg-white text-orange-600 shadow-sm ring-1 ring-stone-100" : "text-stone-400 hover:text-stone-600"}`}
           >
             <Mic className={`w-4 h-4 ${tab === "voice" ? "text-orange-500" : ""}`} />
             Voice First
           </button>
           <button 
             onClick={() => setTab("manual")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${tab === "manual" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${tab === "manual" ? "bg-white text-orange-600 shadow-sm ring-1 ring-stone-100" : "text-stone-400 hover:text-stone-600"}`}
           >
             <Plus className={`w-4 h-4 ${tab === "manual" ? "text-orange-500" : ""}`} />
             Manual Entry
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
           {tab === "voice" ? (
-            <div className="flex flex-col items-center justify-center py-12 px-8 text-center min-h-[350px]">
+            <div className="flex flex-col items-center justify-center py-12 px-8 text-center min-h-[400px]">
               {isProcessing ? (
-                <div className="flex flex-col items-center animate-in fade-in duration-500">
-                  <div className="relative mb-6">
-                    <div className="w-20 h-20 border-4 border-orange-100 rounded-full" />
-                    <div className="absolute inset-0 w-20 h-20 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                    <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-orange-500 animate-pulse" />
+                <div className="flex flex-col items-center animate-in fade-in duration-700">
+                  <div className="relative mb-8">
+                    <div className="w-24 h-24 border-4 border-orange-50 rounded-full" />
+                    <div className="absolute inset-0 w-24 h-24 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                    <Sparkles className="absolute inset-0 m-auto w-10 h-10 text-orange-500 animate-pulse" />
                   </div>
-                  <h3 className="text-lg font-bold text-stone-900">AI is Analyzing...</h3>
-                  <p className="text-sm text-stone-500 mt-2">Crafting your task details from your voice.</p>
+                  <h3 className="text-xl font-bold text-stone-900">AI is Analyzing...</h3>
+                  <p className="text-sm text-stone-500 mt-2 max-w-[240px]">We're turning your voice into a perfectly structured task.</p>
                 </div>
               ) : (
-                <>
-                  <div className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 mb-6 ${isRecording ? "bg-red-50 scale-110 shadow-2xl shadow-red-100" : "bg-orange-50"}`}>
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className={`w-28 h-28 rounded-[2.5rem] flex items-center justify-center transition-all duration-500 mb-8 mx-auto ${isRecording ? "bg-orange-500 scale-110 shadow-2xl shadow-orange-200" : "bg-orange-50"}`}>
                     {isRecording ? (
                       <div className="relative">
-                        <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-20" />
-                        <Square className="w-8 h-8 text-red-500 relative z-10" />
+                        <div className="absolute inset-0 rounded-[2rem] bg-white animate-ping opacity-20" />
+                        <Square className="w-10 h-10 text-white relative z-10" />
                       </div>
                     ) : (
-                      <Mic className="w-10 h-10 text-orange-500" />
+                      <Mic className="w-12 h-12 text-orange-500" />
                     )}
                   </div>
                   
-                  <h3 className="text-xl font-bold text-stone-900">
-                    {isRecording ? "Listening..." : "Tell me your task"}
+                  <h3 className="text-2xl font-bold text-stone-900 tracking-tight">
+                    {isRecording ? "I'm Listening..." : "Tell me your task"}
                   </h3>
-                  <p className="mt-2 text-sm text-stone-500 max-w-xs mx-auto leading-relaxed">
+                  <p className="mt-3 text-sm text-stone-500 max-w-xs mx-auto leading-relaxed">
                     {isRecording 
-                      ? "I'm listening. Say things like 'Buy groceries tomorrow at 5pm'." 
-                      : "Tap the button below and describe what you want to do."}
+                      ? "Describe what you need to do, when, and how important it is." 
+                      : "Speak naturally. For example: 'Remind me to call the architect tomorrow morning at 9, high priority.'"}
                   </p>
 
                   {isRecording && (
-                    <div className="mt-6 font-mono text-2xl font-bold text-red-500 animate-pulse">
-                      {formatTime(recordingTime)}
+                    <div className="mt-8 flex items-center justify-center gap-3">
+                      <div className="flex gap-1">
+                        {[1,2,3].map(i => <div key={i} className="w-1 h-6 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />)}
+                      </div>
+                      <span className="font-mono text-3xl font-bold text-stone-900">{formatTime(recordingTime)}</span>
+                      <div className="flex gap-1">
+                        {[1,2,3].map(i => <div key={i} className="w-1 h-6 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />)}
+                      </div>
                     </div>
                   )}
 
                   <button
                     onClick={isRecording ? stopRecording : startRecording}
-                    className={`mt-10 px-10 py-4 rounded-2xl font-bold text-lg shadow-xl transition-all active:scale-95 ${
+                    className={`mt-12 px-12 py-4 rounded-[1.5rem] font-bold text-lg shadow-xl transition-all active:scale-95 duration-300 ${
                       isRecording 
                         ? "bg-stone-900 text-white hover:bg-black shadow-stone-200" 
-                        : "bg-orange-500 text-white hover:bg-orange-600 shadow-orange-200"
+                        : "bg-orange-500 text-white hover:bg-orange-600 shadow-orange-100"
                     }`}
                   >
-                    {isRecording ? "Stop & Process" : "Start Recording"}
+                    {isRecording ? "Finish Speaking" : "Start Recording"}
                   </button>
-                </>
+                </div>
               )}
             </div>
           ) : (
-            <div className="px-6 py-6 space-y-6">
+            <div className="px-8 py-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
               {/* Form Content */}
-              <div className="space-y-5">
+              <div className="space-y-6">
                 <div>
-                  <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2 px-1">Task Title</p>
+                  <label className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.15em] mb-3 block px-1">Task Title</label>
                   <input
                     autoFocus value={title} onChange={e => setTitle(e.target.value)}
-                    placeholder="What do you need to do?"
-                    className="w-full px-4 py-3 rounded-2xl border border-stone-200 bg-stone-50 text-base font-medium text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all"
+                    placeholder="What's the plan?"
+                    className="w-full px-5 py-4 rounded-2xl border-2 border-stone-50 bg-stone-50 text-lg font-semibold text-stone-900 placeholder-stone-300 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:bg-white focus:border-orange-500/20 transition-all shadow-inner"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2 px-1">Category</p>
-                    <CategorySelect value={catId} onChange={setCatId} />
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.15em] mb-3 block px-1">Category</label>
+                    <CategorySelect 
+                      value={catId} 
+                      onChange={setCatId} 
+                      triggerClassName="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-stone-50 border-2 border-stone-50 text-sm font-bold text-stone-700 hover:bg-white hover:border-stone-100 transition-all"
+                    />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2 px-1">Priority</p>
-                    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.15em] mb-3 block px-1">Priority</label>
+                    <div className="flex gap-2 p-1 bg-stone-50 rounded-2xl border border-stone-100 overflow-x-auto scrollbar-hide">
                       {PRIS.map(p => {
+                        const meta = PRI_META_LOCAL[p];
                         const active = pri === p;
                         return (
                           <button
                             key={p} onClick={() => setPri(p)}
-                            className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${active ? "bg-stone-900 text-white border-stone-900 shadow-sm" : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"}`}
+                            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap ${
+                              active 
+                                ? `${meta.bg} ${meta.text} shadow-sm ring-1 ${meta.border}` 
+                                : "text-stone-400 hover:text-stone-600 hover:bg-white"
+                            }`}
                           >
-                            {p.charAt(0) + p.slice(1).toLowerCase()}
+                            <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+                            {meta.label}
                           </button>
                         );
                       })}
@@ -263,28 +283,28 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2 px-1">Due Date</p>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.15em] mb-3 block px-1">Due Date</label>
+                    <div className="relative group">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-orange-500 transition-colors pointer-events-none" />
                       <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                        className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                        className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-stone-50 border-2 border-stone-50 text-sm font-bold text-stone-900 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:bg-white focus:border-orange-500/20 transition-all"/>
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2 px-1">Time</p>
-                    <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.15em] mb-3 block px-1">Time</label>
+                    <div className="relative group">
+                      <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-orange-500 transition-colors pointer-events-none" />
                       <input type="time" value={time} onChange={e => setTime(e.target.value)}
-                        className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400"/>
+                        className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-stone-50 border-2 border-stone-50 text-sm font-bold text-stone-900 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:bg-white focus:border-orange-500/20 transition-all"/>
                     </div>
                   </div>
                 </div>
 
                 {date && time && (
                   <div className="animate-in fade-in slide-in-from-top-1">
-                    <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2 px-1">Reminder</p>
+                    <label className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.15em] mb-3 block px-1">Reminder</label>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { val: -1, label: "None" },
@@ -294,7 +314,11 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
                       ].map(r => (
                         <button
                           key={r.val} onClick={() => setReminder(r.val)}
-                          className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${reminder === r.val ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"}`}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold border-2 transition-all ${
+                            reminder === r.val 
+                              ? "bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-100" 
+                              : "bg-white text-stone-500 border-stone-100 hover:border-orange-200 hover:text-orange-600"
+                          }`}
                         >
                           {r.label}
                         </button>
@@ -306,52 +330,54 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
                 <div>
                   <button 
                     onClick={() => setShowDetails(!showDetails)}
-                    className="flex items-center gap-1.5 text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors bg-orange-50 px-3 py-2 rounded-xl"
+                    className="flex items-center gap-2 text-[11px] font-bold text-orange-600 hover:text-orange-700 transition-colors bg-orange-50/50 px-4 py-2.5 rounded-2xl uppercase tracking-wider"
                   >
-                    <ChevronDown className={`w-4 h-4 transition-transform ${showDetails ? "rotate-180" : ""}`} />
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showDetails ? "rotate-180" : ""}`} />
                     {showDetails ? "Simple view" : "Advanced details"}
                   </button>
                   
                   {showDetails && (
-                    <div className="mt-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                    <div className="mt-6 space-y-6 animate-in slide-in-from-top-4 duration-300">
                       <div>
-                        <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2 px-1">Description</p>
+                        <label className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.15em] mb-3 block px-1">Description</label>
                         <textarea
                           value={desc} onChange={e => setDesc(e.target.value)}
-                          placeholder="Add more context..." rows={3}
-                          className="w-full px-4 py-3 rounded-2xl border border-stone-200 bg-stone-50 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+                          placeholder="Any specific notes?" rows={3}
+                          className="w-full px-5 py-4 rounded-2xl border-2 border-stone-50 bg-stone-50 text-sm font-medium text-stone-900 placeholder-stone-300 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:bg-white focus:border-orange-500/20 transition-all resize-none shadow-inner"
                         />
                       </div>
                       
                       <div>
-                        <div className="flex items-center justify-between mb-2 px-1">
-                          <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Attachments</p>
+                        <div className="flex items-center justify-between mb-3 px-1">
+                          <label className="text-[11px] font-bold text-stone-400 uppercase tracking-[0.15em]">Attachments</label>
                           <button 
                             onClick={() => fileInputRef.current?.click()}
-                            className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+                            className="text-[11px] font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1.5 uppercase tracking-wider"
                           >
-                            <UploadCloud className="w-3.5 h-3.5" /> Upload Image
+                            <UploadCloud className="w-4 h-4" /> Upload
                           </button>
                           <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
                         </div>
                         
                         {images.length > 0 ? (
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="grid grid-cols-3 gap-3">
                             {images.map((img, i) => (
-                              <div key={i} className="group relative aspect-video rounded-xl border border-stone-200 overflow-hidden bg-stone-100">
-                                <img src={img} alt={`Preview ${i}`} className="w-full h-full object-cover" />
+                              <div key={i} className="group relative aspect-video rounded-2xl border-2 border-stone-50 overflow-hidden bg-stone-100 shadow-sm">
+                                <img src={img} alt={`Preview ${i}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 <button 
                                   onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))}
-                                  className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center rounded-lg bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                                  className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-xl bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-all shadow-lg active:scale-90"
                                 >
-                                  <Trash2 className="w-3 h-3" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <div className="text-[10px] text-stone-400 font-bold uppercase py-4 border-2 border-dashed border-stone-100 rounded-2xl flex flex-col items-center justify-center">
-                            No images attached
+                          <div className="py-8 border-2 border-dashed border-stone-100 rounded-[2rem] flex flex-col items-center justify-center bg-stone-50/30">
+                            <UploadCloud className="w-8 h-8 text-stone-200 mb-2" />
+                            <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">No images yet</p>
                           </div>
                         )}
                       </div>
@@ -361,12 +387,12 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-2">
-                <button onClick={onClose} className="flex-1 py-3.5 rounded-2xl border border-stone-200 text-sm font-bold text-stone-500 hover:bg-stone-50 transition-colors">
-                  Cancel
+              <div className="flex gap-4 pt-4 pb-2">
+                <button onClick={onClose} className="flex-1 py-4 rounded-[1.5rem] border-2 border-stone-100 text-sm font-bold text-stone-400 hover:bg-stone-50 hover:text-stone-600 transition-all active:scale-[0.98]">
+                  Discard
                 </button>
-                <button onClick={handleSave} className="flex-1 py-3.5 rounded-2xl bg-stone-900 hover:bg-black text-sm font-bold text-white shadow-xl transition-all active:scale-[0.98]">
-                  Confirm & Save
+                <button onClick={handleSave} className="flex-1 py-4 rounded-[1.5rem] bg-gradient-to-br from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-sm font-bold text-white shadow-xl shadow-orange-100 transition-all active:scale-[0.98]">
+                  Create Task
                 </button>
               </div>
             </div>
