@@ -247,18 +247,17 @@ export default function ThinkAloudModal({ onClose }: { onClose: () => void }) {
                     </div>
                   ))}
                 </div>
-              </div>
 
-              <div className="pt-4 border-t border-stone-100">
-                <button 
-                  onClick={onClose}
-                  className="w-full py-3 rounded-2xl bg-stone-900 text-white text-sm font-bold hover:bg-black transition-colors"
-                >
-                  Done
-                </button>
+                <div className="pt-4 border-t border-stone-100">
+                  <button 
+                    onClick={onClose}
+                    className="w-full py-3 rounded-2xl bg-stone-900 text-white text-sm font-bold hover:bg-black transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
     </div>
