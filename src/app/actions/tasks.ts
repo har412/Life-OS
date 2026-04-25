@@ -58,8 +58,12 @@ export async function createTask(incomingData: any) {
     const [hours, minutes] = task.time.split(':').map(Number);
     alertTime.setHours(hours || 0, minutes || 0, 0, 0);
 
-    const delay = Math.floor((alertTime.getTime() - Date.now()) / 1000); // QStash uses seconds for delay
-    console.log(`📅 Scheduling QStash alert for ${alertTime.toISOString()} (Delay: ${delay}s)`);
+    const now = new Date();
+    const delay = Math.floor((alertTime.getTime() - now.getTime()) / 1000);
+    
+    console.log(`⏰ Current Server Time: ${now.toISOString()}`);
+    console.log(`📅 Target Alert Time:  ${alertTime.toISOString()}`);
+    console.log(`⏳ Calculated Delay:   ${delay} seconds`);
     
     if (delay > 0) {
       try {
@@ -145,8 +149,12 @@ export async function updateTask(id: string, incomingData: any) {
     const [hours, minutes] = task.time.split(':').map(Number);
     alertTime.setHours(hours || 0, minutes || 0, 0, 0);
 
-    const delay = Math.floor((alertTime.getTime() - Date.now()) / 1000);
-    console.log(`📅 Rescheduling QStash alert for ${alertTime.toISOString()} (Delay: ${delay}s)`);
+    const now = new Date();
+    const delay = Math.floor((alertTime.getTime() - now.getTime()) / 1000);
+    
+    console.log(`⏰ Current Server Time: ${now.toISOString()}`);
+    console.log(`📅 Target Alert Time:  ${alertTime.toISOString()}`);
+    console.log(`⏳ Calculated Delay:   ${delay} seconds`);
 
     if (delay > 0) {
       try {

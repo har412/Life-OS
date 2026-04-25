@@ -7,6 +7,11 @@ const receiver = new Receiver({
   nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
 });
 
+// Allow GET for simple manual testing
+export async function GET() {
+  return new NextResponse("Webhook is alive and ready for QStash!", { status: 200 });
+}
+
 export async function POST(req: NextRequest) {
   console.log("📨 Received QStash Webhook request");
   
@@ -36,7 +41,15 @@ export async function POST(req: NextRequest) {
   console.log("✅ Signature verified");
 
   // 2. Parse the job data
-  const { taskId, userId } = JSON.parse(body);
+  let data;
+  try {
+    data = JSON.parse(body);
+  } catch (e) {
+    console.error("❌ Failed to parse body as JSON", e);
+    return new NextResponse("Invalid JSON", { status: 400 });
+  }
+
+  const { taskId, userId } = data;
   console.log(`🔍 Processing Alert: TaskID=${taskId}, UserID=${userId}`);
 
   try {
@@ -44,10 +57,13 @@ export async function POST(req: NextRequest) {
       where: { id: taskId },
     });
 
-    if (!task) return new NextResponse("Task not found", { status: 200 }); // Still 200 to acknowledge QStash
+    if (!task) {
+      console.warn(`⚠️ Task ${taskId} no longer exists. Skipping alert.`);
+      return new NextResponse("Task not found", { status: 200 }); 
+    }
 
     // 3. Create the Alert record
-    await prisma.alert.create({
+    const alert = await prisma.alert.create({
       data: {
         title: `Task: ${task.title}`,
         message: task.description || "Your task is due now!",
@@ -57,8 +73,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log(`🔔 QStash Alert triggered for: ${task.title}`);
-    return NextResponse.json({ success: true });
+    console.log(`🔔 Alert created in DB: ${alert.id} for task: ${task.title}`);
+    return NextResponse.json({ success: true, alertId: alert.id });
   } catch (error) {
     console.error("❌ Error processing QStash alert:", error);
     return new NextResponse("Internal Error", { status: 500 });
