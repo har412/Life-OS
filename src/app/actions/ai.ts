@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function saveAISettings(data: {
   provider: string;
@@ -46,4 +48,35 @@ export async function getAISettings() {
   return await prisma.aISettings.findUnique({
     where: { userId: session.user.id },
   });
+}
+
+export async function validateAIKey(provider: string, apiKey: string, baseUrl?: string) {
+  try {
+    if (provider === "GEMINI") {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+      
+      // Filter for models that support generating content
+      return { 
+        success: true, 
+        models: data.models
+          ?.filter((m: any) => m.supportedGenerationMethods.includes("generateContent"))
+          .map((m: any) => m.name.replace("models/", "")) || []
+      };
+    }
+
+    if (provider === "OPENAI" || provider === "OPENROUTER" || provider === "NVIDIA") {
+      const client = new OpenAI({ apiKey, baseURL: baseUrl || undefined });
+      const response = await client.models.list();
+      return { 
+        success: true, 
+        models: response.data.map(m => m.id)
+      };
+    }
+
+    return { error: "Provider validation not implemented yet." };
+  } catch (error: any) {
+    return { error: error.message || "Failed to validate key" };
+  }
 }

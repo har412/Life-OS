@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { saveAISettings, getAISettings } from "@/app/actions/ai";
-import { Brain, Key, Cpu, Globe, Save, CheckCircle, AlertCircle } from "lucide-react";
+import { saveAISettings, getAISettings, validateAIKey } from "@/app/actions/ai";
+import { Brain, Key, Cpu, Globe, Save, CheckCircle, AlertCircle, RefreshCw, ChevronDown } from "lucide-react";
 
 const PROVIDERS = [
   { id: "OPENAI", label: "OpenAI", defaultUrl: "https://api.openai.com/v1" },
@@ -19,7 +19,10 @@ export default function AISettingsManager() {
   const [baseUrl, setBaseUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [isValidating, setIsValidating] = useState(false);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [status, setStatus] = useState<"idle" | "success" | "error" | "valid">("idle");
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -34,6 +37,32 @@ export default function AISettingsManager() {
     }
     load();
   }, []);
+
+  const handleValidate = async () => {
+    if (!apiKey) {
+      setValidationError("Please enter an API key first.");
+      setStatus("error");
+      return;
+    }
+    setIsValidating(true);
+    setStatus("idle");
+    setValidationError("");
+    
+    const res = await validateAIKey(provider, apiKey, baseUrl);
+    setIsValidating(false);
+    
+    if (res.success && res.models) {
+      setAvailableModels(res.models);
+      setStatus("valid");
+      // If the current modelName is not in the list, pick the first one
+      if (res.models.length > 0 && !res.models.includes(modelName)) {
+        setModelName(res.models[0]);
+      }
+    } else {
+      setValidationError(res.error || "Validation failed");
+      setStatus("error");
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -91,13 +120,27 @@ export default function AISettingsManager() {
           <label className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2 block flex items-center gap-1.5">
             <Key className="w-3 h-3" /> API Key
           </label>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder={`Enter your ${provider} API key`}
-            className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-          />
+          <div className="relative">
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder={`Enter your ${provider} API key`}
+              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 pr-32"
+            />
+            <button
+              onClick={handleValidate}
+              disabled={isValidating}
+              className="absolute right-2 top-1.5 bottom-1.5 px-3 rounded-lg bg-stone-900 text-white text-[10px] font-bold uppercase hover:bg-black transition-all disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {isValidating ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Validate Key"}
+            </button>
+          </div>
+          {validationError && (
+            <p className="mt-1.5 text-[10px] font-bold text-red-500 uppercase tracking-tight flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" /> {validationError}
+            </p>
+          )}
         </div>
 
         {/* Model Name */}
@@ -106,13 +149,28 @@ export default function AISettingsManager() {
             <label className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2 block flex items-center gap-1.5">
               <Cpu className="w-3 h-3" /> Model Name
             </label>
-            <input
-              type="text"
-              value={modelName}
-              onChange={(e) => setModelName(e.target.value)}
-              placeholder="e.g. gpt-4o or llama-3-70b"
-              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-            />
+            {availableModels.length > 0 ? (
+              <div className="relative">
+                <select
+                  value={modelName}
+                  onChange={(e) => setModelName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 appearance-none cursor-pointer"
+                >
+                  {availableModels.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={modelName}
+                onChange={(e) => setModelName(e.target.value)}
+                placeholder="e.g. gpt-4o or llama-3-70b"
+                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
+            )}
           </div>
           <div>
             <label className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2 block flex items-center gap-1.5">
@@ -133,10 +191,15 @@ export default function AISettingsManager() {
           <div className="flex items-center gap-2">
             {status === "success" && (
               <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-                <CheckCircle className="w-3.5 h-3.5" /> Saved successfully
+                <CheckCircle className="w-3.5 h-3.5" /> Config Saved
               </span>
             )}
-            {status === "error" && (
+            {status === "valid" && (
+              <span className="text-xs font-bold text-purple-600 flex items-center gap-1">
+                <CheckCircle className="w-3.5 h-3.5" /> Key Verified & Models Fetched
+              </span>
+            )}
+            {status === "error" && !validationError && (
               <span className="text-xs font-bold text-red-600 flex items-center gap-1">
                 <AlertCircle className="w-3.5 h-3.5" /> Error saving
               </span>
