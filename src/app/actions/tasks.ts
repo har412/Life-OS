@@ -167,9 +167,8 @@ export async function deleteTask(id: string) {
 
   revalidatePath("/");
   
-  // Remove scheduled alert
-  const job = await alertQueue?.getJob(`alert-${id}`);
-  if (job) await job.remove();
+  // Remove scheduled alert (QStash messages don't need manual removal here 
+  // as the trigger route handles task existence checks)
 
   return { success: true };
 }
