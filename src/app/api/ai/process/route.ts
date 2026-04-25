@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
       RULES:
       1. FORMAT: You MUST return ONLY a JSON object with a key named "tasks" containing an array of objects.
-      2. TITLE: Create a concise, bold title (e.g., "🛒 Buy Groceries").
+      2. TITLE: Create a concise title (e.g., "🛒 Buy Groceries").
       3. DESCRIPTION: Include helpful context if mentioned.
       4. CATEGORY: Pick one of: [WORK, PERSONAL, HEALTH, HOME, FINANCE]. Default to PERSONAL.
       5. PRIORITY: Pick one of: [LOW, MEDIUM, HIGH, URGENT]. Use URGENT if they sound stressed.

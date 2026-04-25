@@ -224,29 +224,57 @@ export default function ThinkAloudModal({ onClose }: { onClose: () => void }) {
                   </div>
                   <div className="space-y-3">
                     {proposedTasks.map((task, i) => (
-                      <div key={i} className="bg-white border border-stone-200 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-300 transition-colors group">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-stone-900 truncate">{task.title}</p>
-                          <div className="flex flex-wrap items-center gap-3 mt-2">
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-stone-400">
-                              <Calendar className="w-3 h-3" /> {task.dueDate || "No date"}
-                            </span>
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-stone-400">
-                              <Tag className="w-3 h-3" /> {task.categoryId}
-                            </span>
-                            <span className={`text-[10px] font-bold uppercase ${
-                              task.priority === 'URGENT' ? 'text-red-500' : 'text-orange-500'
-                            }`}>
-                              {task.priority}
-                            </span>
+                      <div key={i} className="bg-white border border-stone-200 rounded-2xl p-4 flex flex-col gap-3 hover:border-purple-300 transition-colors group">
+                        <div className="flex items-start gap-4">
+                          <div className="flex-1 min-w-0">
+                            <input 
+                              type="text"
+                              value={task.title}
+                              onChange={(e) => {
+                                const newTasks = [...proposedTasks];
+                                newTasks[i] = { ...newTasks[i], title: e.target.value };
+                                setProposedTasks(newTasks);
+                              }}
+                              className="w-full text-sm font-bold text-stone-900 bg-transparent border-none p-0 focus:ring-0 focus:outline-none hover:bg-stone-50 rounded px-1 -ml-1"
+                            />
+                            <textarea
+                              value={task.description || ""}
+                              onChange={(e) => {
+                                const newTasks = [...proposedTasks];
+                                newTasks[i] = { ...newTasks[i], description: e.target.value };
+                                setProposedTasks(newTasks);
+                              }}
+                              rows={1}
+                              className="w-full text-[11px] text-stone-500 mt-1 bg-transparent border-none p-0 focus:ring-0 focus:outline-none hover:bg-stone-50 rounded px-1 -ml-1 resize-none overflow-hidden italic"
+                              placeholder="Add description..."
+                              onInput={(e) => {
+                                const target = e.target as HTMLTextAreaElement;
+                                target.style.height = "auto";
+                                target.style.height = `${target.scrollHeight}px`;
+                              }}
+                            />
                           </div>
+                          <button 
+                            onClick={() => handleAddTask(task)}
+                            className="w-10 h-10 shrink-0 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-600 hover:text-white transition-all shadow-sm active:scale-90"
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
                         </div>
-                        <button 
-                          onClick={() => handleAddTask(task)}
-                          className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-600 hover:text-white transition-all shadow-sm active:scale-90"
-                        >
-                          <Plus className="w-5 h-5" />
-                        </button>
+                        
+                        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-stone-50">
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-stone-400">
+                            <Calendar className="w-3 h-3" /> {task.dueDate || "No date"}
+                          </span>
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-stone-400">
+                            <Tag className="w-3 h-3" /> {task.categoryId}
+                          </span>
+                          <span className={`text-[10px] font-bold uppercase ${
+                            task.priority === 'URGENT' ? 'text-red-500' : 'text-orange-500'
+                          }`}>
+                            {task.priority}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>

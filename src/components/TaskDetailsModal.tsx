@@ -91,9 +91,13 @@ export default function TaskDetailsModal({ taskId }: { taskId: string }) {
         {/* Header */}
         <div className="flex items-start justify-between p-6 pb-4 border-b border-stone-100">
           <div className="flex-1 pr-8">
-            <h2 className="text-2xl font-bold text-stone-900 leading-tight mb-3">
-              {task.title}
-            </h2>
+            <input
+              type="text"
+              value={task.title}
+              onChange={(e) => updateTaskDetails(taskId, { title: e.target.value })}
+              className="w-full text-2xl font-bold text-stone-900 leading-tight mb-3 bg-transparent border-none focus:outline-none focus:ring-0 p-0 hover:bg-stone-50 rounded-lg transition-colors"
+              placeholder="Task title..."
+            />
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative inline-flex">
                 <select 
