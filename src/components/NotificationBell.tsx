@@ -10,14 +10,38 @@ export default function NotificationBell() {
 
   async function fetchAlerts() {
     const data = await getAlerts();
+    
+    // If there's a new unread alert, show a browser notification
+    if (data.length > 0 && !data[0].isRead) {
+      const latestAlert = data[0];
+      const storedLastId = localStorage.getItem("last_alert_id");
+      
+      if (latestAlert.id !== storedLastId) {
+        if (Notification.permission === "granted") {
+          new Notification(latestAlert.title, {
+            body: latestAlert.message,
+            icon: "/logo.png" // Replace with your actual icon path
+          });
+        }
+        localStorage.setItem("last_alert_id", latestAlert.id);
+      }
+    }
+
     setAlerts(data);
     setUnreadCount(data.filter((a: any) => !a.isRead).length);
   }
 
   useEffect(() => {
+    // Request permission for browser notifications
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+    }
+
     fetchAlerts();
     // In a real app, we might use Pusher or Ably for real-time
-    const interval = setInterval(fetchAlerts, 30000); // Polling every 30s for now
+    const interval = setInterval(fetchAlerts, 15000); // Polling every 15s
     return () => clearInterval(interval);
   }, []);
 

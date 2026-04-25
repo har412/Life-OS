@@ -61,12 +61,17 @@ export async function createTask(incomingData: any) {
     alertTime.setHours(hours || 0, minutes || 0, 0, 0);
 
     const delay = alertTime.getTime() - Date.now();
+    console.log(`📅 Scheduling alert for ${alertTime.toISOString()} (Delay: ${delay}ms)`);
+    
     if (delay > 0) {
-      await alertQueue?.add(
+      const job = await alertQueue?.add(
         `alert-${task.id}`,
         { taskId: task.id, userId: session.user.id },
         { delay, jobId: `alert-${task.id}` }
       );
+      console.log(`✅ Job added to queue: ${job?.id}`);
+    } else {
+      console.log(`⚠️ Delay is negative (${delay}ms), skipping schedule.`);
     }
   }
 
@@ -139,17 +144,23 @@ export async function updateTask(id: string, incomingData: any) {
     alertTime.setHours(hours || 0, minutes || 0, 0, 0);
 
     const delay = alertTime.getTime() - Date.now();
+    console.log(`📅 Rescheduling alert for ${alertTime.toISOString()} (Delay: ${delay}ms)`);
+
     if (delay > 0) {
       // BullMQ will replace the existing job with the same jobId
-      await alertQueue?.add(
+      const job = await alertQueue?.add(
         `alert-${task.id}`,
         { taskId: task.id, userId: session.user.id },
         { delay, jobId: `alert-${task.id}` }
       );
+      console.log(`✅ Job updated in queue: ${job?.id}`);
     } else {
       // If time passed, remove existing job if any
       const job = await alertQueue?.getJob(`alert-${task.id}`);
-      if (job) await job.remove();
+      if (job) {
+        await job.remove();
+        console.log(`🗑️ Removed expired job: alert-${task.id}`);
+      }
     }
   }
 
