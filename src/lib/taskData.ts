@@ -36,6 +36,7 @@ export interface Task {
   description?: string;
   images?:      string[];
   comments?:    Comment[];
+  reminderOffset?: number | null;
 }
 
 export interface FilterState {
