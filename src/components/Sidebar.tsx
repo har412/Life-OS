@@ -134,6 +134,8 @@ export default function Sidebar() {
             <p className="text-[11px] text-stone-400 mt-0.5 font-medium">Personal Assistant</p>
           </div>
         </Link>
+      </div>
+
       {/* Think Aloud AI */}
       <div className="px-3 pb-2">
         <button 
