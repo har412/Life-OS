@@ -25,6 +25,7 @@ function AuthGuard({
 }) {
   const { status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [showThinkAloud, setShowThinkAloud] = useState(false);
 
