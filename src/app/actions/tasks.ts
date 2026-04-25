@@ -62,12 +62,16 @@ export async function createTask(incomingData: any) {
     console.log(`📅 Scheduling QStash alert for ${alertTime.toISOString()} (Delay: ${delay}s)`);
     
     if (delay > 0) {
-      await qstashClient.publishJSON({
-        url: `${APP_URL}/api/alerts/trigger`,
-        body: { taskId: task.id, userId: session.user.id },
-        delay: delay,
-      });
-      console.log(`✅ Message published to QStash`);
+      try {
+        const res = await qstashClient.publishJSON({
+          url: `${APP_URL}/api/alerts/trigger`,
+          body: { taskId: task.id, userId: session.user.id },
+          delay: delay,
+        });
+        console.log(`✅ Message published to QStash (ID: ${res.messageId})`);
+      } catch (err) {
+        console.error("❌ Failed to publish to QStash:", err);
+      }
     } else {
       console.log(`⚠️ Delay is negative (${delay}s), skipping QStash publish.`);
     }
@@ -145,12 +149,16 @@ export async function updateTask(id: string, incomingData: any) {
     console.log(`📅 Rescheduling QStash alert for ${alertTime.toISOString()} (Delay: ${delay}s)`);
 
     if (delay > 0) {
-      await qstashClient.publishJSON({
-        url: `${APP_URL}/api/alerts/trigger`,
-        body: { taskId: task.id, userId: session.user.id },
-        delay: delay,
-      });
-      console.log(`✅ New message published to QStash`);
+      try {
+        const res = await qstashClient.publishJSON({
+          url: `${APP_URL}/api/alerts/trigger`,
+          body: { taskId: task.id, userId: session.user.id },
+          delay: delay,
+        });
+        console.log(`✅ New message published to QStash (ID: ${res.messageId})`);
+      } catch (err) {
+        console.error("❌ Failed to reschedule on QStash:", err);
+      }
     }
   }
 
