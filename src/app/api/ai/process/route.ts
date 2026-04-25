@@ -48,7 +48,9 @@ export async function POST(req: NextRequest) {
       transcript = transcription.text;
     } else if (provider === "GEMINI") {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      // Ensure we use a Gemini model name even if the setting was left as 'gpt-4o'
+      const geminiModel = settings.modelName?.startsWith("gemini") ? settings.modelName : "gemini-1.5-flash";
+      const model = genAI.getGenerativeModel({ model: geminiModel });
       
       const buffer = Buffer.from(await audioFile.arrayBuffer());
       const result = await model.generateContent([
@@ -93,7 +95,8 @@ export async function POST(req: NextRequest) {
       extractedTasks = parsed.tasks || parsed.items || Object.values(parsed)[0] || [];
     } else if (provider === "GEMINI") {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: settings.modelName || "gemini-1.5-flash" });
+      const geminiModel = settings.modelName?.startsWith("gemini") ? settings.modelName : "gemini-1.5-flash";
+      const model = genAI.getGenerativeModel({ model: geminiModel });
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       // Gemini sometimes adds markdown blocks
