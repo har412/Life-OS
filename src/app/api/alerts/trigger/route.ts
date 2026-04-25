@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
           title: title,
           body: message,
           icon: "/icons/icon-192x192.png",
-          url: `/`,
+          url: `/?taskId=${task.id}`,
           // ADD QUICK ACTIONS
           actions: [
             { action: "tomorrow", title: "📅 Tomorrow" },
