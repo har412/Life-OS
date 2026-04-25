@@ -68,7 +68,7 @@ function TableRow({task,selected,onSelect,onClick}:{task:Task;selected:boolean;o
   return (
     <div onClick={onClick} className={`flex items-center group border-b border-stone-100 last:border-0 hover:bg-stone-50 transition-colors cursor-pointer ${selected?"bg-orange-50 hover:bg-orange-50":""} ${done?"opacity-60":""}`}>
       <div className="w-10 shrink-0 flex items-center justify-center py-3">
-        <button onClick={(e)=>{e.stopPropagation();onSelect();}} className={`w-4 h-4 rounded border-[1.5px] flex items-center justify-center transition-all ${selected?"bg-orange-500 border-orange-500":"border-stone-300 hover:border-orange-400"}`}>
+        <button onClick={(e)=>{e.stopPropagation();onSelect();}} className={`w-4 h-4 rounded border-[1.5px] flex items-center justify-center transition-all ${selected?"bg-orange-500 border-orange-500":"border-orange-200 hover:border-orange-400"}`}>
           {selected&&<svg viewBox="0 0 10 8" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5"><polyline points="9 1 4 7 1 4"/></svg>}
         </button>
       </div>
@@ -148,11 +148,11 @@ export default function TableView({tasks,sortBy,sortDir,onSort,groupBy}:{tasks:T
 
   // Desktop: show table
   const desktopView = (
-    <div className="hidden lg:block bg-white border border-stone-200 rounded-2xl overflow-hidden">
+    <div className="hidden lg:block bg-white border border-orange-100 rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center border-b border-stone-200 bg-stone-50 text-[11px] font-semibold text-stone-500 uppercase tracking-wide sticky top-0 z-10">
+      <div className="flex items-center border-b border-orange-100 bg-orange-50/30 text-[11px] font-semibold text-stone-500 uppercase tracking-wide sticky top-0 z-10">
         <div className="w-10 shrink-0 flex items-center justify-center py-2.5">
-          <button onClick={()=>setSelected(s=>s.size===tasks.length?new Set():new Set(tasks.map(t=>t.id)))} className={`w-4 h-4 rounded border-[1.5px] flex items-center justify-center ${selected.size===tasks.length?"bg-orange-500 border-orange-500":"border-stone-300 hover:border-orange-400"}`}>
+          <button onClick={()=>setSelected(s=>s.size===tasks.length?new Set():new Set(tasks.map(t=>t.id)))} className={`w-4 h-4 rounded border-[1.5px] flex items-center justify-center ${selected.size===tasks.length?"bg-orange-500 border-orange-500":"border-orange-200 hover:border-orange-400"}`}>
             {selected.size===tasks.length&&<svg viewBox="0 0 10 8" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5"><polyline points="9 1 4 7 1 4"/></svg>}
           </button>
         </div>
@@ -171,9 +171,9 @@ export default function TableView({tasks,sortBy,sortDir,onSort,groupBy}:{tasks:T
       {groups.map(g=>(
         <Fragment key={g.key}>
           {groupBy!=="none"&&(
-            <div className="flex items-center gap-3 px-4 py-2.5 bg-stone-50 border-b border-stone-200 sticky top-[41px] z-10">
+            <div className="flex items-center gap-3 px-4 py-2.5 bg-orange-50/10 border-b border-orange-100 sticky top-[41px] z-10">
               <button onClick={()=>setCollapsed(s=>{const n=new Set(s);n.has(g.key)?n.delete(g.key):n.add(g.key);return n;})} className="flex items-center gap-2">
-                <ChevronDown className={`w-3.5 h-3.5 text-stone-400 transition-transform ${collapsed.has(g.key)?"-rotate-90":""}`}/>
+                <ChevronDown className={`w-3.5 h-3.5 text-orange-300 transition-transform ${collapsed.has(g.key)?"-rotate-90":""}`}/>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${g.color}`}>{g.label}</span>
                 <span className="text-xs text-stone-400">{g.tasks.length}</span>
               </button>

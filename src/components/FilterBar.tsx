@@ -27,8 +27,8 @@ function DD<T extends string>({ label, options, selected, onToggle, onClear, onS
         {!active && <ChevronDown className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} />}
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-stone-200 rounded-xl shadow-lg min-w-[180px] py-1.5 overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-1.5 mb-1 border-b border-stone-100 bg-stone-50/50">
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-orange-100 rounded-xl shadow-lg min-w-[180px] py-1.5 overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-1.5 mb-1 border-b border-orange-50 bg-orange-50/20">
             <button onClick={onSelectAll} className="text-[10px] font-bold text-orange-600 hover:text-orange-700 uppercase tracking-wider transition-colors">Select all</button>
             <button onClick={onClear} className="text-[10px] font-bold text-stone-400 hover:text-red-500 uppercase tracking-wider transition-colors">Clear all</button>
           </div>
@@ -67,7 +67,7 @@ function DateFilter() {
         {active ? <>{cur ? `${cur.e} ${cur.label}` : `${filters.dateFrom ?? ""} → ${filters.dateTo ?? ""}`}<span role="button" onClick={e => { e.stopPropagation(); clear(); }} className="hover:text-red-500 ml-0.5 cursor-pointer"><X className="w-3 h-3" /></span></> : <><span>Due date</span><ChevronDown className={`w-3 h-3 ${open ? "rotate-180" : ""}`} /></>}
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-stone-200 rounded-xl shadow-lg w-60 p-3">
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-orange-100 rounded-xl shadow-lg w-60 p-3">
           <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">Quick select</p>
           <div className="space-y-0.5 mb-3">
             {presets.map(p => (
@@ -108,7 +108,7 @@ function SaveViewDialog({ onSave, onClose }: { onSave: (n: string, e: string) =>
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white border border-stone-200 rounded-2xl shadow-xl w-full max-w-sm p-5">
+      <div className="relative bg-white border border-orange-100 rounded-2xl shadow-xl w-full max-w-sm p-5">
         <h3 className="text-base font-semibold text-stone-900 mb-4">Save current view</h3>
         <div className="flex gap-1.5 flex-wrap mb-4">{emojis.map(e => <button key={e} onClick={() => setEmoji(e)} className={`w-8 h-8 rounded-lg text-base flex items-center justify-center ${emoji === e ? "bg-orange-100 ring-2 ring-orange-400" : "hover:bg-stone-100"}`}>{e}</button>)}</div>
         <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="View name…" onKeyDown={e => e.key === "Enter" && name.trim() && onSave(name.trim(), emoji)}
@@ -141,7 +141,7 @@ export default function FilterBar({ search, setSearch }: { search: string; setSe
     <div>
       {/* ── Mobile compact row ── */}
       <div className="flex lg:hidden items-center gap-2">
-        <div className="flex items-center bg-stone-100 rounded-lg p-0.5 gap-0.5 shrink-0">
+        <div className="flex items-center bg-orange-100/50 rounded-lg p-0.5 gap-0.5 shrink-0">
           {VIEWS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => updateFilter("viewType", id)} className={`flex items-center gap-1 h-7 px-2 rounded-md text-xs font-medium transition-all ${filters.viewType === id ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"}`}>
               <Icon className="w-3.5 h-3.5" strokeWidth={1.75} /><span className="hidden sm:inline">{label}</span>
@@ -149,8 +149,8 @@ export default function FilterBar({ search, setSearch }: { search: string; setSe
           ))}
         </div>
         <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" className="h-8 w-full pl-8 pr-3 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-400" />
+          <Search className="w-3.5 h-3.5 text-orange-300 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" className="h-8 w-full pl-8 pr-3 rounded-lg border border-orange-100 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-400" />
         </div>
         <button onClick={() => setMobileOpen(o => !o)} className={`relative flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border transition-all shrink-0 ${mobileOpen || hasFilters ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-white text-stone-600 border-stone-200"}`}>
           <SlidersHorizontal className="w-3.5 h-3.5" />Filters
@@ -160,7 +160,7 @@ export default function FilterBar({ search, setSearch }: { search: string; setSe
 
       {/* ── Mobile filter panel ── */}
       {mobileOpen && (
-        <div className="lg:hidden mt-3 p-3 bg-stone-50 border border-stone-200 rounded-xl space-y-3">
+        <div className="lg:hidden mt-3 p-3 bg-orange-50/50 border border-orange-100 rounded-xl space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <DateFilter />
             <DD label="Category" options={allCategories.map(c => c.id)} selected={filters.categories} onToggle={v => updateFilter("categories", toggle(filters.categories, v))} onClear={() => updateFilter("categories", [])} onSelectAll={() => updateFilter("categories", allCategories.map(c => c.id))} renderOpt={c => { const m = getCatMeta(c, allCategories); return <span className="flex items-center gap-2 text-sm text-stone-700"><span className={`w-2 h-2 rounded-full ${m.dot}`} />{m.label}</span>; }} />
@@ -176,19 +176,19 @@ export default function FilterBar({ search, setSearch }: { search: string; setSe
 
       {/* ── Desktop full row ── */}
       <div className="hidden lg:flex items-center gap-2 flex-wrap">
-        <div className="flex items-center bg-stone-100 rounded-lg p-0.5 gap-0.5 shrink-0">
+        <div className="flex items-center bg-orange-100/50 rounded-lg p-0.5 gap-0.5 shrink-0">
           {VIEWS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => updateFilter("viewType", id)} className={`flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium transition-all ${filters.viewType === id ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}>
               <Icon className="w-3.5 h-3.5" strokeWidth={1.75} />{label}
             </button>
           ))}
         </div>
-        <div className="w-px h-5 bg-stone-200 shrink-0" />
+        <div className="w-px h-5 bg-orange-100 shrink-0" />
         <div className="relative">
-          <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…" className="h-8 pl-8 pr-3 rounded-lg border border-stone-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 w-44" />
+          <Search className="w-3.5 h-3.5 text-orange-300 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…" className="h-8 pl-8 pr-3 rounded-lg border border-orange-100 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 w-44" />
         </div>
-        <div className="w-px h-5 bg-stone-200 shrink-0" />
+        <div className="w-px h-5 bg-orange-100 shrink-0" />
         <DateFilter />
         <DD label="Category" options={allCategories.map(c => c.id)} selected={filters.categories} onToggle={v => updateFilter("categories", toggle(filters.categories, v))} onClear={() => updateFilter("categories", [])} onSelectAll={() => updateFilter("categories", allCategories.map(c => c.id))} renderOpt={c => { const m = getCatMeta(c, allCategories); return <span className="flex items-center gap-2 text-sm text-stone-700"><span className={`w-2 h-2 rounded-full ${m.dot}`} />{m.label}</span>; }} />
         <DD label="Priority" options={ALL_PRIS} selected={filters.priorities} onToggle={v => updateFilter("priorities", toggle(filters.priorities, v))} onClear={() => updateFilter("priorities", [])} onSelectAll={() => updateFilter("priorities", ALL_PRIS)} renderOpt={p => <span className="flex items-center gap-2 text-sm text-stone-700"><span className={`w-2 h-2 rounded-full ${PRIORITY_META[p].dot}`} />{PRIORITY_META[p].label}</span>} />
@@ -209,7 +209,7 @@ export default function FilterBar({ search, setSearch }: { search: string; setSe
           <button onClick={() => setGroupOpen(o => !o)} className={`flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border transition-all ${filters.groupBy !== "none" ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"}`}>
             <Layers className="w-3.5 h-3.5" />{filters.groupBy !== "none" ? `Group: ${GROUP_OPTS.find(o => o.id === filters.groupBy)?.label}` : "Group by"}<ChevronDown className={`w-3 h-3 transition-transform ${groupOpen ? "rotate-180" : ""}`} />
           </button>
-          {groupOpen && <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-stone-200 rounded-xl shadow-lg w-44 py-1.5">{GROUP_OPTS.map(o => <button key={o.id} onClick={() => { updateFilter("groupBy", o.id); setGroupOpen(false); }} className={`w-full px-3 py-2 text-sm text-left transition-colors ${filters.groupBy === o.id ? "bg-orange-50 text-orange-700 font-medium" : "hover:bg-stone-50 text-stone-700"}`}>{o.label}</button>)}</div>}
+          {groupOpen && <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-orange-100 rounded-xl shadow-lg w-44 py-1.5">{GROUP_OPTS.map(o => <button key={o.id} onClick={() => { updateFilter("groupBy", o.id); setGroupOpen(false); }} className={`w-full px-3 py-2 text-sm text-left transition-colors ${filters.groupBy === o.id ? "bg-orange-50 text-orange-700 font-medium" : "hover:bg-orange-50/50 text-stone-700"}`}>{o.label}</button>)}</div>}
         </div>
         {hasFilters && <button onClick={resetFilters} className="flex items-center gap-1 text-xs font-medium text-stone-400 hover:text-red-500 h-8 px-2"><RotateCcw className="w-3.5 h-3.5" />Clear</button>}
         <button onClick={() => setSaveDialog(true)} className="flex items-center gap-1.5 h-8 text-xs font-semibold text-orange-600 border border-orange-200 bg-orange-50 hover:bg-orange-100 px-3 rounded-lg ml-auto shrink-0 transition-colors"><BookmarkPlus className="w-3.5 h-3.5" />Save view</button>

@@ -120,10 +120,10 @@ export default function TasksPage() {
   const needsFullHeight = filters.viewType === "week" || filters.viewType === "kanban";
 
   return (
-    <div className={`bg-stone-50 flex flex-col ${needsFullHeight ? "h-[calc(100dvh-0px)] lg:h-screen overflow-hidden" : "min-h-screen"}`}>
+    <div className={`bg-[#fffcf9] flex flex-col ${needsFullHeight ? "h-[calc(100dvh-0px)] lg:h-screen overflow-hidden" : "min-h-screen"}`}>
 
       {/* Mobile sticky header */}
-      <div className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-stone-200 shrink-0">
+      <div className="lg:hidden sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-orange-100 shrink-0">
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="flex items-center gap-2.5 flex-1 min-w-0 relative">
             <div className="w-8 h-8 bg-orange-500 rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-orange-200">

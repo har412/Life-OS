@@ -148,7 +148,7 @@ export default function WeekView({ tasks }: { tasks: Task[] }) {
         return (
           <div key={day.iso}
             className={`flex flex-col rounded-2xl border overflow-hidden ${
-              day.isToday ? "border-orange-200 bg-orange-50/30" : "border-stone-200 bg-white"
+              day.isToday ? "border-orange-200 bg-orange-50/30" : "border-orange-100 bg-white"
             }`}
           >
             {/* Day header */}

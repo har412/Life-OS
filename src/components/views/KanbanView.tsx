@@ -240,8 +240,8 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
         {COLUMNS.map(col => {
           const colTasks = taskState.filter(t => t.status === col.id);
           return (
-            <div key={col.id} className="flex flex-col bg-white border border-stone-200 rounded-2xl overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3.5 border-b border-stone-100 shrink-0">
+            <div key={col.id} className="flex flex-col bg-white border border-orange-100 rounded-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3.5 border-b border-orange-50 bg-orange-50/20 shrink-0">
                 <span className={`w-2.5 h-2.5 rounded-full ${col.dot}`} />
                 <span className="text-sm font-semibold text-stone-800 flex-1">{col.label}</span>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${col.badge}`}>{colTasks.length}</span>
