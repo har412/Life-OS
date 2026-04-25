@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
       transcript = transcription.text;
     } else if (provider === "GEMINI") {
       const genAI = new GoogleGenerativeAI(apiKey);
-      // Ensure we use a Gemini model name even if the setting was left as 'gpt-4o'
-      const geminiModel = settings.modelName?.startsWith("gemini") ? settings.modelName : "gemini-1.5-flash";
+      // Try 'gemini-1.5-flash-latest' which is often more reliable than just 'gemini-1.5-flash'
+      const geminiModel = settings.modelName?.includes("gemini") ? settings.modelName : "gemini-1.5-flash-latest";
       const model = genAI.getGenerativeModel({ model: geminiModel });
       
       const buffer = Buffer.from(await audioFile.arrayBuffer());
@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
         {
           inlineData: {
             data: buffer.toString("base64"),
-            mimeType: audioFile.type
+            mimeType: "audio/webm" // Force standard audio mime type
           }
         },
-        "Transcribe this audio exactly as spoken."
+        "Transcribe this audio exactly as spoken. If there is no speech, return an empty string."
       ]);
       transcript = result.response.text();
     } else {
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       extractedTasks = parsed.tasks || parsed.items || Object.values(parsed)[0] || [];
     } else if (provider === "GEMINI") {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const geminiModel = settings.modelName?.startsWith("gemini") ? settings.modelName : "gemini-1.5-flash";
+      const geminiModel = settings.modelName?.includes("gemini") ? settings.modelName : "gemini-1.5-flash-latest";
       const model = genAI.getGenerativeModel({ model: geminiModel });
       const result = await model.generateContent(prompt);
       const text = result.response.text();
