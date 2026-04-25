@@ -21,6 +21,8 @@ export async function createTask(incomingData: any) {
   if (data.status === 'BACKLOG') {
     data.dueDate = null;
     data.time = null;
+  } else if (data.dueDate) {
+    data.dueDate = new Date(data.dueDate);
   }
 
   const task = await prisma.task.create({
@@ -47,6 +49,8 @@ export async function updateTask(id: string, incomingData: any) {
   if (data.status === 'BACKLOG') {
     data.dueDate = null;
     data.time = null;
+  } else if (data.dueDate) {
+    data.dueDate = new Date(data.dueDate);
   }
 
   const task = await prisma.task.update({
