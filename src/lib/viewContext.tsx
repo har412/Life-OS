@@ -92,7 +92,7 @@ export function ViewProvider({
   }, []);
 
   const addTask = useCallback(async (taskData: Partial<Task>) => {
-    const res = await createTask(taskData);
+    const res = await createTask({ ...taskData, timezoneOffset: new Date().getTimezoneOffset() });
     if (res.task) {
       const normalized = { ...res.task, category: res.task.categoryId } as any;
       setTasks(prev => [normalized, ...prev]);
@@ -119,7 +119,7 @@ export function ViewProvider({
     } : t));
     setTaskStatMap(prev => ({ ...prev, [taskId]: status }));
     
-    const res = await updateTask(taskId, { status });
+    const res = await updateTask(taskId, { status, timezoneOffset: new Date().getTimezoneOffset() });
     if (res.task) {
       // Final sync with backend data
       const updated = { ...res.task, category: res.task.categoryId } as any;
@@ -151,7 +151,7 @@ export function ViewProvider({
       return { ...prev, [taskId]: updated };
     });
     
-    const res = await updateTask(taskId, details);
+    const res = await updateTask(taskId, { ...details, timezoneOffset: new Date().getTimezoneOffset() });
     if (res.task) {
       // Final sync with backend data
       const updated = { ...res.task, category: res.task.categoryId } as any;

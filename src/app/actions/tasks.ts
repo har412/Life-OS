@@ -25,7 +25,8 @@ export async function createTask(incomingData: any) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  const data = { ...incomingData };
+  const { timezoneOffset, ...taskData } = incomingData;
+  const data = { ...taskData };
 
   // Sanitize for Prisma
   if (data.id) delete data.id; // Let Prisma generate it
@@ -57,6 +58,11 @@ export async function createTask(incomingData: any) {
     const alertTime = new Date(task.dueDate);
     const [hours, minutes] = task.time.split(':').map(Number);
     alertTime.setHours(hours || 0, minutes || 0, 0, 0);
+    
+    // Adjust for the user's local timezone
+    if (timezoneOffset !== undefined) {
+      alertTime.setMinutes(alertTime.getMinutes() + Number(timezoneOffset));
+    }
 
     const now = new Date();
     const delay = Math.floor((alertTime.getTime() - now.getTime()) / 1000);
@@ -88,7 +94,7 @@ export async function updateTask(id: string, incomingData: any) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  const data = { ...incomingData };
+  const { timezoneOffset, ...data } = incomingData;
 
   // 0. Business logic: backlog should not have due date
   if (data.status === 'BACKLOG') {
@@ -148,6 +154,11 @@ export async function updateTask(id: string, incomingData: any) {
     const alertTime = new Date(task.dueDate);
     const [hours, minutes] = task.time.split(':').map(Number);
     alertTime.setHours(hours || 0, minutes || 0, 0, 0);
+
+    // Adjust for the user's local timezone
+    if (timezoneOffset !== undefined) {
+      alertTime.setMinutes(alertTime.getMinutes() + Number(timezoneOffset));
+    }
 
     const now = new Date();
     const delay = Math.floor((alertTime.getTime() - now.getTime()) / 1000);
