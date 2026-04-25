@@ -69,15 +69,38 @@ export async function POST(req: NextRequest) {
 
     // 3. Task Extraction (LLM)
     const prompt = `
-      You are a task management assistant. Analyze the following transcript from a "Think Aloud" session and extract a list of actionable tasks.
-      
+      You are an expert personal assistant. Your job is to analyze a "brain dump" transcript and extract structured tasks for a productivity app.
+
+      TODAY IS: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+
       RULES:
-      - Extract: Title (concise), Description (context), DueDate (YYYY-MM-DD), Time (HH:mm), CategoryId (WORK, HEALTH, HOME, PERSONAL), and Priority (LOW, MEDIUM, HIGH, URGENT).
-      - If no specific date is mentioned, leave DueDate as null.
-      - If a day is mentioned (e.g. "this Saturday"), calculate the date relative to TODAY: ${new Date().toISOString().split('T')[0]}.
-      - Output ONLY a JSON array of objects.
+      1. FORMAT: You MUST return ONLY a JSON object with a key named "tasks" containing an array of objects.
+      2. TITLE: Create a concise, bold title (e.g., "🛒 Buy Groceries").
+      3. DESCRIPTION: Include helpful context if mentioned.
+      4. CATEGORY: Pick one of: [WORK, PERSONAL, HEALTH, HOME, FINANCE]. Default to PERSONAL.
+      5. PRIORITY: Pick one of: [LOW, MEDIUM, HIGH, URGENT]. Use URGENT if they sound stressed.
+      6. SCHEDULING: 
+         - If a date/time is mentioned, set "dueDate" (YYYY-MM-DD) and "time" (HH:mm).
+         - Set "status" to "SCHEDULED" if there is a date, otherwise "BACKLOG".
+      7. REMINDERS: If they mention a reminder (e.g. "30 mins before"), set "reminderOffset" to the number of minutes (e.g., 30).
       
-      TRANSCRIPT:
+      EXAMPLE OUTPUT:
+      {
+        "tasks": [
+          {
+            "title": "Fix bathroom leak",
+            "description": "Call plumber about the leak under the sink",
+            "dueDate": "2026-04-26",
+            "time": "10:00",
+            "categoryId": "HOME",
+            "priority": "HIGH",
+            "status": "SCHEDULED",
+            "reminderOffset": 30
+          }
+        ]
+      }
+
+      TRANSCRIPT TO PROCESS:
       "${transcript}"
     `;
 
