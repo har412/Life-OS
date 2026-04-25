@@ -34,6 +34,7 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcript, setTranscript] = useState("");
+  const [aiError, setAiError] = useState<string | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -51,6 +52,7 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
 
   const startRecording = async () => {
     try {
+      setAiError(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -82,7 +84,10 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
       const formData = new FormData();
       formData.append("audio", blob);
       const response = await fetch("/api/ai/process", { method: "POST", body: formData });
-      if (!response.ok) throw new Error("Failed to process");
+      if (!response.ok) {
+        const msg = await response.text();
+        throw new Error(msg || "Failed to process audio");
+      }
       
       const data = await response.json();
       setTranscript(data.transcript);
@@ -100,7 +105,8 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
         setTab("manual");
         if (first.description) setShowDetails(true);
       }
-    } catch (err) {
+    } catch (err: any) {
+      setAiError(err.message);
       console.error(err);
     } finally {
       setIsProcessing(false);
@@ -207,6 +213,14 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
                       ? "I'm listening. Tell me the task and details." 
                       : "Describe your task naturally. I'll handle the rest."}
                   </p>
+
+                  {aiError && (
+                    <div className="mt-6 p-3 rounded-xl bg-red-50 border border-red-100 text-[11px] text-red-600 font-medium animate-in fade-in zoom-in-95 duration-300">
+                      <p className="flex items-center justify-center gap-1.5">
+                        <span className="text-base">⚠️</span> {aiError}
+                      </p>
+                    </div>
+                  )}
 
                   {isRecording && (
                     <div className="mt-6 font-mono text-2xl font-bold text-stone-900">

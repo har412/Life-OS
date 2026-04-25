@@ -143,6 +143,17 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("❌ Error processing AI request:", error);
+    
+    // Handle Rate Limiting (429) specifically
+    const isRateLimit = error.status === 429 || 
+                       error.message?.includes("429") || 
+                       error.message?.includes("Too Many Requests") ||
+                       error.message?.includes("quota");
+
+    if (isRateLimit) {
+      return new NextResponse("Rate limit exceeded. Please wait a moment or switch to a different AI model in Settings.", { status: 429 });
+    }
+
     return new NextResponse(error.message || "Internal Error", { status: 500 });
   }
 }
