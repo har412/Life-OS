@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { changePassword } from "@/app/actions/auth";
 
 const CategoryManager = dynamic(() => import("@/components/CategoryManager"), { ssr: false });
+const PushSubscriptionManager = dynamic(() => import("@/components/PushSubscriptionManager"), { ssr: false });
 
 type Tab = "categories" | "notifications" | "account" /* | "display" */;
 
@@ -37,6 +38,7 @@ function NotificationsTab() {
           </button>
         </div>
       ))}
+      <PushSubscriptionManager />
     </div>
   );
 }

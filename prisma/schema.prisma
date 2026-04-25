@@ -27,6 +27,7 @@ model User {
   categories     Category[]
   savedViews     SavedView[]
   alerts         Alert[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Category {
@@ -128,4 +129,14 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
