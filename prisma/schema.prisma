@@ -85,6 +85,7 @@ model SavedView {
 model Alert {
   id        String   @id @default(uuid())
   type      String   // OVERDUE, DUE_TODAY, DUE_SOON
+  title     String   @default("Notification")
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())

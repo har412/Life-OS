@@ -12,6 +12,7 @@ export function startAlertWorker() {
   worker = new Worker(
     "alerts",
     async (job) => {
+      console.log(`👷 Worker received job: ${job.id}`);
       const { taskId, userId } = job.data;
       
       try {
@@ -24,7 +25,8 @@ export function startAlertWorker() {
         // Create Alert record
         await prisma.alert.create({
           data: {
-            message: `Reminder: ${task.title} - ${task.description || "Task due now!"}`,
+            title: `Task: ${task.title}`,
+            message: task.description || "Your task is due now!",
             type: "TASK_REMINDER",
             userId: userId,
             taskId: taskId,
