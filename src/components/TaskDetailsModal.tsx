@@ -29,9 +29,19 @@ export default function TaskDetailsModal({ taskId }: { taskId: string }) {
   const pri = PRIORITY_META[task.priority];
   const stat = STATUS_META[task.status];
 
+  const [localTitle, setLocalTitle] = useState(task.title);
   const [desc, setDesc] = useState(task.description || "");
   const [commentText, setCommentText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-save title on blur
+  const handleTitleBlur = () => {
+    if (localTitle.trim() && localTitle !== baseTask.title) {
+      updateTaskDetails(taskId, { title: localTitle.trim() });
+    } else {
+      setLocalTitle(baseTask.title); // Revert if empty
+    }
+  };
 
   // Auto-save description on blur
   const handleDescBlur = () => {
@@ -93,8 +103,9 @@ export default function TaskDetailsModal({ taskId }: { taskId: string }) {
           <div className="flex-1 pr-8">
             <input
               type="text"
-              value={task.title}
-              onChange={(e) => updateTaskDetails(taskId, { title: e.target.value })}
+              value={localTitle}
+              onChange={(e) => setLocalTitle(e.target.value)}
+              onBlur={handleTitleBlur}
               className="w-full text-2xl font-bold text-stone-900 leading-tight mb-3 bg-transparent border-none focus:outline-none focus:ring-0 p-0 hover:bg-stone-50 rounded-lg transition-colors"
               placeholder="Task title..."
             />
