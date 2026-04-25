@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { X, Mic, Square, Loader2, Sparkles, ChevronDown, UploadCloud, Trash2, Calendar, Clock } from "lucide-react";
+import { X, Mic, Square, Loader2, Sparkles, ChevronDown, UploadCloud, Trash2, Calendar, Clock, Plus } from "lucide-react";
 import { PRIORITY_META, type Priority, type Task } from "@/lib/taskData";
 import { useView } from "@/lib/viewContext";
 import CategorySelect from "@/components/CategorySelect";
