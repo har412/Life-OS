@@ -109,6 +109,17 @@ export default function ThinkAloudModal({ onClose }: { onClose: () => void }) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleAddAll = async () => {
+    setSavingAll(true);
+    for (const task of proposedTasks) {
+      await addTask(task);
+    }
+    setProposedTasks([]);
+    setSavingAll(false);
+  };
+
+  const [savingAll, setSavingAll] = useState(false);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-md" onClick={onClose}/>
@@ -188,10 +199,26 @@ export default function ThinkAloudModal({ onClose }: { onClose: () => void }) {
                 <p className="text-sm text-stone-600 italic">"{transcript}"</p>
               </div>
 
-              <div>
-                <h4 className="text-sm font-bold text-stone-900 mb-4 flex items-center gap-2">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                   Extracted Tasks <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full text-[10px]">{proposedTasks.length} Found</span>
                 </h4>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setProposedTasks([])}
+                    className="text-[10px] font-bold uppercase text-stone-400 hover:text-red-500 transition-colors"
+                  >
+                    Discard All
+                  </button>
+                  <button 
+                    onClick={handleAddAll}
+                    disabled={savingAll}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-[10px] font-bold uppercase hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                  >
+                    {savingAll ? "Adding..." : <><Plus className="w-3 h-3" /> Add All</>}
+                  </button>
+                </div>
+              </div>
                 <div className="space-y-3">
                   {proposedTasks.map((task, i) => (
                     <div key={i} className="bg-white border border-stone-200 rounded-2xl p-4 flex items-center gap-4 hover:border-purple-300 transition-colors group">
