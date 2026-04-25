@@ -19,6 +19,7 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
   const [time,     setTime]   = useState("");
   const [desc,     setDesc]   = useState("");
   const [images,   setImages] = useState<string[]>([]);
+  const [reminder, setReminder] = useState(0); // 0=at time, 10=10m, 30=30m, -1=none
   const [showDetails, setShowDetails] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,6 +31,7 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
       priority: pri,
       dueDate: date || null,
       time: time || null,
+      reminderOffset: reminder === -1 ? null : reminder,
       description: desc,
       images,
     };
@@ -144,6 +146,33 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
                     className="w-full px-3 py-2 rounded-lg border border-stone-200 bg-stone-50 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-orange-400"/>
                 </div>
               </div>
+
+              {/* Reminders */}
+              {date && time && (
+                <div className="animate-in fade-in slide-in-from-top-1">
+                  <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">Reminder</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { val: -1, label: "None" },
+                      { val: 0,  label: "At time" },
+                      { val: 10, label: "10m before" },
+                      { val: 30, label: "30m before" }
+                    ].map(r => (
+                      <button
+                        key={r.val}
+                        onClick={() => setReminder(r.val)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                          reminder === r.val
+                            ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                            : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Rich Details Toggle */}
               <div>

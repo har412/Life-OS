@@ -5,21 +5,7 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { qstashClient } from "@/lib/qstash";
 
-const APP_URL = process.env.APP_URL || "http://localhost:3000";
-
-// Ensure worker is running on the server
-
-
-export async function getTasks() {
-  const session = await auth();
-  if (!session?.user?.id) return [];
-
-  return prisma.task.findMany({
-    where: { userId: session.user.id },
-    include: { comments: true, category: true },
-    orderBy: { createdAt: "desc" },
-  });
-}
+const APP_URL = process.env.APP_URL;
 
 export async function createTask(incomingData: any) {
   const session = await auth();
@@ -29,62 +15,24 @@ export async function createTask(incomingData: any) {
   const data = { ...taskData };
 
   // Sanitize for Prisma
-  if (data.id) delete data.id; // Let Prisma generate it
-  if (data.category !== undefined) {
-    data.categoryId = data.category;
-    delete data.category;
-  }
-  if (data.dueDate) {
-    data.dueDate = new Date(data.dueDate);
-    data.status = 'SCHEDULED';
-  } else if (data.dueDate === null) {
+  if (data.id) delete data.id; 
+  data.userId = session.user.id;
+
+  if (data.status === 'BACKLOG') {
     data.dueDate = null;
+    data.time = null;
   }
-  // Comments shouldn't be created on initial task add usually, but if they are, ignore for now.
-  if (data.comments) delete data.comments;
 
   const task = await prisma.task.create({
-    data: {
-      ...data,
-      userId: session.user.id,
-    },
+    data,
     include: { category: true, comments: true },
   });
 
   revalidatePath("/");
 
-  // Schedule Alert
+  // Schedule Alerts
   if (task.dueDate && task.time) {
-    const alertTime = new Date(task.dueDate);
-    const [hours, minutes] = task.time.split(':').map(Number);
-    alertTime.setHours(hours || 0, minutes || 0, 0, 0);
-    
-    // Adjust for the user's local timezone
-    if (timezoneOffset !== undefined) {
-      alertTime.setMinutes(alertTime.getMinutes() + Number(timezoneOffset));
-    }
-
-    const now = new Date();
-    const delay = Math.floor((alertTime.getTime() - now.getTime()) / 1000);
-    
-    console.log(`⏰ Current Server Time: ${now.toISOString()}`);
-    console.log(`📅 Target Alert Time:  ${alertTime.toISOString()}`);
-    console.log(`⏳ Calculated Delay:   ${delay} seconds`);
-    
-    if (delay > 0) {
-      try {
-        const res = await qstashClient.publishJSON({
-          url: `${APP_URL}/api/alerts/trigger`,
-          body: { taskId: task.id, userId: session.user.id },
-          delay: delay,
-        });
-        console.log(`✅ Message published to QStash (ID: ${res.messageId})`);
-      } catch (err) {
-        console.error("❌ Failed to publish to QStash:", err);
-      }
-    } else {
-      console.log(`⚠️ Delay is negative (${delay}s), skipping QStash publish.`);
-    }
+    await scheduleTaskAlerts(task, session.user.id, timezoneOffset);
   }
 
   return { task };
@@ -96,49 +44,9 @@ export async function updateTask(id: string, incomingData: any) {
 
   const { timezoneOffset, ...data } = incomingData;
 
-  // 0. Business logic: backlog should not have due date
   if (data.status === 'BACKLOG') {
     data.dueDate = null;
     data.time = null;
-  } else if (data.dueDate && !data.status) {
-    // If adding a date to a task that might be in BACKLOG, move it to SCHEDULED
-    const currentTask = await prisma.task.findUnique({ 
-      where: { id, userId: session.user.id },
-      select: { status: true }
-    });
-    if (currentTask?.status === 'BACKLOG') {
-      data.status = 'SCHEDULED';
-    }
-  }
-
-  // 1. Sanitize category -> categoryId
-  if (data.category !== undefined) {
-    data.categoryId = data.category;
-    delete data.category;
-  }
-
-  // 2. Sanitize comments relation
-  if (data.comments !== undefined) {
-    const comments = data.comments;
-    delete data.comments;
-    // Delete existing and recreate to sync
-    await prisma.comment.deleteMany({ where: { taskId: id } });
-    if (comments && comments.length > 0) {
-      await prisma.comment.createMany({
-        data: comments.map((c: any) => ({
-          text: c.text,
-          taskId: id,
-          createdAt: c.createdAt ? new Date(c.createdAt) : new Date(),
-        })),
-      });
-    }
-  }
-
-  // 3. Sanitize Dates
-  if (data.dueDate) {
-    data.dueDate = new Date(data.dueDate);
-  } else if (data.dueDate === null) {
-    data.dueDate = null;
   }
 
   const task = await prisma.task.update({
@@ -149,39 +57,56 @@ export async function updateTask(id: string, incomingData: any) {
 
   revalidatePath("/");
 
-  // Schedule/Reschedule Alert
+  // Schedule/Reschedule Alerts
   if (task.dueDate && task.time) {
-    const alertTime = new Date(task.dueDate);
-    const [hours, minutes] = task.time.split(':').map(Number);
-    alertTime.setHours(hours || 0, minutes || 0, 0, 0);
+    await scheduleTaskAlerts(task, session.user.id, timezoneOffset);
+  }
 
-    // Adjust for the user's local timezone
-    if (timezoneOffset !== undefined) {
-      alertTime.setMinutes(alertTime.getMinutes() + Number(timezoneOffset));
-    }
+  return { task };
+}
 
-    const now = new Date();
-    const delay = Math.floor((alertTime.getTime() - now.getTime()) / 1000);
-    
-    console.log(`⏰ Current Server Time: ${now.toISOString()}`);
-    console.log(`📅 Target Alert Time:  ${alertTime.toISOString()}`);
-    console.log(`⏳ Calculated Delay:   ${delay} seconds`);
+async function scheduleTaskAlerts(task: any, userId: string, timezoneOffset?: number) {
+  const alertTime = new Date(task.dueDate);
+  const [hours, minutes] = task.time.split(':').map(Number);
+  alertTime.setHours(hours || 0, minutes || 0, 0, 0);
+  
+  if (timezoneOffset !== undefined) {
+    alertTime.setMinutes(alertTime.getMinutes() + Number(timezoneOffset));
+  }
+
+  const now = new Date();
+  
+  // We schedule two types of alerts:
+  // 1. Pre-reminder (if offset > 0)
+  // 2. Overdue (at the exact time)
+
+  const offsets = [0]; // Always schedule the 0 (overdue) alert
+  if (task.reminderOffset && task.reminderOffset > 0) {
+    offsets.push(task.reminderOffset);
+  }
+
+  for (const offset of offsets) {
+    const targetTime = new Date(alertTime.getTime() - (offset * 60000));
+    const delay = Math.floor((targetTime.getTime() - now.getTime()) / 1000);
 
     if (delay > 0) {
       try {
         const res = await qstashClient.publishJSON({
           url: `${APP_URL}/api/alerts/trigger`,
-          body: { taskId: task.id, userId: session.user.id },
+          body: { 
+            taskId: task.id, 
+            userId: userId,
+            alertType: offset === 0 ? "OVERDUE" : "REMINDER",
+            offset: offset
+          },
           delay: delay,
         });
-        console.log(`✅ New message published to QStash (ID: ${res.messageId})`);
+        console.log(`✅ [${offset}m] Message published to QStash (ID: ${res.messageId})`);
       } catch (err) {
-        console.error("❌ Failed to reschedule on QStash:", err);
+        console.error(`❌ Failed to publish ${offset}m alert:`, err);
       }
     }
   }
-
-  return { task };
 }
 
 export async function deleteTask(id: string) {
@@ -193,9 +118,5 @@ export async function deleteTask(id: string) {
   });
 
   revalidatePath("/");
-  
-  // Remove scheduled alert (QStash messages don't need manual removal here 
-  // as the trigger route handles task existence checks)
-
   return { success: true };
 }

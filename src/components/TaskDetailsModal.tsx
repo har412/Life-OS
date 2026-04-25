@@ -299,6 +299,30 @@ export default function TaskDetailsModal({ taskId }: { taskId: string }) {
                   className="w-full px-3 py-2 rounded-lg border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
                 />
               </div>
+
+              <div>
+                <span className="text-xs font-medium text-stone-500 flex items-center gap-1.5 mb-2">🔔 Reminder</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { val: null, label: "None" },
+                    { val: 0,    label: "At time" },
+                    { val: 10,   label: "10m before" },
+                    { val: 30,   label: "30m before" }
+                  ].map(r => (
+                    <button
+                      key={String(r.val)}
+                      onClick={() => updateTaskDetails(taskId, { reminderOffset: r.val })}
+                      className={`px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border ${
+                        (task.reminderOffset ?? null) === r.val
+                          ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                          : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
