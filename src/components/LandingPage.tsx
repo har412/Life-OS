@@ -49,7 +49,7 @@ export default function LandingPage() {
           <div className="relative">
             <div className="absolute -inset-4 bg-orange-200/30 blur-3xl rounded-full" />
             <img 
-              src="file:///C:/Users/Harkirat%20Win10/.gemini/antigravity/brain/5aab1f10-a1aa-444e-802b-2f7aa692d0f9/life_os_landing_hero_1777134598688.png" 
+              src="/hero.png" 
               alt="LifeOS Interface Preview" 
               className="relative rounded-3xl shadow-2xl border border-white/50"
             />
@@ -93,7 +93,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-6 text-sm font-medium text-stone-500">
             <Link href="/privacy" className="hover:text-orange-600 transition-colors">Privacy Policy</Link>
-            <Link href="/" className="hover:text-orange-600 transition-colors">Terms of Service</Link>
+            <Link href="/terms" className="hover:text-orange-600 transition-colors">Terms of Service</Link>
             <Link href="/" className="hover:text-orange-600 transition-colors">Help Center</Link>
           </div>
           <p className="text-xs text-stone-400">© 2026 LifeOS Assistant. All rights reserved.</p>

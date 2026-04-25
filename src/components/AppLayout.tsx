@@ -25,17 +25,17 @@ function AuthGuard({
   const { status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const isPublicPage = pathname === "/" || pathname === "/privacy" || pathname === "/terms";
 
   const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
-    const isHomePage = pathname === "/";
-    if (status === "unauthenticated" && !isAuthPage && !isHomePage) {
+    if (status === "unauthenticated" && !isAuthPage && !isPublicPage) {
       router.push("/login");
     } else if (status === "authenticated" && isAuthPage) {
       router.push("/");
     }
-  }, [status, isAuthPage, pathname, router]);
+  }, [status, isAuthPage, isPublicPage, router]);
 
   if (status === "loading") {
     return <div className="min-h-screen flex items-center justify-center bg-stone-50"><p className="text-stone-500 font-medium animate-pulse">Loading workspace...</p></div>;
@@ -45,8 +45,14 @@ function AuthGuard({
     return <>{children}</>;
   }
 
-  if (status === "unauthenticated") {
+
+  if (status === "unauthenticated" && !isPublicPage) {
     return null;
+  }
+
+  // If it's a public page and we're unauthenticated, we still want to show the content (LandingPage or PrivacyPage)
+  if (status === "unauthenticated" && isPublicPage) {
+    return <>{children}</>;
   }
 
   return (

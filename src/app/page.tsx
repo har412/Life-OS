@@ -79,14 +79,19 @@ function ProgressStrip({ total, done, overdue }: { total:number; done:number; ov
 
 export default function TasksPage() {
   const { status } = useSession();
-  const { tasks, filters, updateFilter, activeViewId, savedViews, taskCategoryMap, taskStatusMap, loadView, resetFilters, activeTaskId, reorderViews, deleteView } = useView();
-  const [search, setSearch] = useState("");
-  const [mobileViewsOpen, setMobileViewsOpen] = useState(false);
-  const [showDesktopAdd, setShowDesktopAdd] = useState(false);
 
   if (status === "unauthenticated") {
     return <LandingPage />;
   }
+
+  return <Dashboard />;
+}
+
+function Dashboard() {
+  const { tasks, filters, updateFilter, activeViewId, savedViews, taskCategoryMap, taskStatusMap, loadView, resetFilters, activeTaskId, reorderViews, deleteView } = useView();
+  const [search, setSearch] = useState("");
+  const [mobileViewsOpen, setMobileViewsOpen] = useState(false);
+  const [showDesktopAdd, setShowDesktopAdd] = useState(false);
 
   const onDragEnd = (result: any) => {
     if (!result.destination) return;
