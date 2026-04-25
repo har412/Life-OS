@@ -111,7 +111,7 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
     if (!title.trim()) return;
     addTask({
       title,
-      categoryId: catId,
+      category: catId,
       priority: pri,
       dueDate: date || null,
       time: time || null,
