@@ -40,7 +40,7 @@ export default function CategorySelect({
   };
 
   const handleAdd = async () => {
-    if (!search.trim() || exactMatch) return;
+    if (!search.trim()) return;
     const cat = await addCategory(search.trim());
     if (cat) onChange(cat.id);
     setOpen(false);

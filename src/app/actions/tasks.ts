@@ -34,19 +34,24 @@ export async function createTask(incomingData: any) {
     }
   }
 
-  const task = await prisma.task.create({
-    data,
-    include: { category: true, comments: true },
-  });
+  try {
+    const task = await prisma.task.create({
+      data,
+      include: { category: true, comments: true },
+    });
 
-  revalidatePath("/");
+    revalidatePath("/");
 
-  // Schedule Alerts
-  if (task.dueDate && task.time) {
-    await scheduleTaskAlerts(task, session.user.id, timezoneOffset);
+    // Schedule Alerts
+    if (task.dueDate && task.time) {
+      await scheduleTaskAlerts(task, session.user.id, timezoneOffset);
+    }
+
+    return { task };
+  } catch (err: any) {
+    console.error("Error creating task:", err);
+    return { error: "Failed to create task. Please try again." };
   }
-
-  return { task };
 }
 
 export async function updateTask(id: string, incomingData: any) {
@@ -71,20 +76,25 @@ export async function updateTask(id: string, incomingData: any) {
     delete data.category;
   }
 
-  const task = await prisma.task.update({
-    where: { id, userId: session.user.id },
-    data,
-    include: { category: true, comments: true },
-  });
+  try {
+    const task = await prisma.task.update({
+      where: { id, userId: session.user.id },
+      data,
+      include: { category: true, comments: true },
+    });
 
-  revalidatePath("/");
+    revalidatePath("/");
 
-  // Schedule/Reschedule Alerts
-  if (task.dueDate && task.time) {
-    await scheduleTaskAlerts(task, session.user.id, timezoneOffset);
+    // Schedule/Reschedule Alerts
+    if (task.dueDate && task.time) {
+      await scheduleTaskAlerts(task, session.user.id, timezoneOffset);
+    }
+
+    return { task };
+  } catch (err: any) {
+    console.error("Error updating task:", err);
+    return { error: "Failed to update task. Please try again." };
   }
-
-  return { task };
 }
 
 async function scheduleTaskAlerts(task: any, userId: string, timezoneOffset?: number) {
@@ -135,10 +145,15 @@ export async function deleteTask(id: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  await prisma.task.delete({
-    where: { id, userId: session.user.id },
-  });
+  try {
+    await prisma.task.delete({
+      where: { id, userId: session.user.id },
+    });
 
-  revalidatePath("/");
-  return { success: true };
+    revalidatePath("/");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error deleting task:", err);
+    return { error: "Failed to delete task. It might have been already removed." };
+  }
 }

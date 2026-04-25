@@ -18,15 +18,23 @@ export async function createCategory(data: { label: string; colorCode: string })
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  const category = await prisma.category.create({
-    data: {
-      ...data,
-      userId: session.user.id,
-    },
-  });
+  try {
+    const category = await prisma.category.create({
+      data: {
+        ...data,
+        userId: session.user.id,
+      },
+    });
 
-  revalidatePath("/");
-  return { category };
+    revalidatePath("/");
+    return { category };
+  } catch (error: any) {
+    console.error("Error creating category:", error);
+    if (error.code === 'P2002') {
+      return { error: "A category with this name already exists." };
+    }
+    return { error: "Could not create category. Please try again." };
+  }
 }
 
 export async function updateCategory(id: string, data: { label?: string; colorCode?: string }) {

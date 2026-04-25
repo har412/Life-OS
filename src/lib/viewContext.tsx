@@ -8,6 +8,7 @@ import {
 import { createTask, updateTask, deleteTask } from "@/app/actions/tasks";
 import { createCategory, updateCategory, deleteCategory } from "@/app/actions/categories";
 import { createSavedView, deleteSavedView, setDefaultView, reorderSavedViews } from "@/app/actions/views";
+import { toast } from "sonner";
 
 
 interface ViewContextType {
@@ -105,10 +106,17 @@ export function ViewProvider({
     if (taskData.dueDate && (!taskData.status || taskData.status === 'BACKLOG')) {
       taskData.status = 'SCHEDULED';
     }
-    const res = await createTask({ ...taskData, timezoneOffset: new Date().getTimezoneOffset() });
-    if (res.task) {
-      const normalized = { ...res.task, category: res.task.categoryId } as any;
-      setTasks(prev => [normalized, ...prev]);
+    try {
+      const res = await createTask({ ...taskData, timezoneOffset: new Date().getTimezoneOffset() });
+      if (res.task) {
+        const normalized = { ...res.task, category: res.task.categoryId } as any;
+        setTasks(prev => [normalized, ...prev]);
+        toast.success("Task created successfully");
+      } else if (res.error) {
+        toast.error(`Failed to create task: ${res.error}`);
+      }
+    } catch (err) {
+      toast.error("An unexpected error occurred while creating the task");
     }
   }, []);
 
@@ -132,18 +140,25 @@ export function ViewProvider({
     } : t));
     setTaskStatMap(prev => ({ ...prev, [taskId]: status }));
     
-    const res = await updateTask(taskId, { status, timezoneOffset: new Date().getTimezoneOffset() });
-    if (res.task) {
-      // Final sync with backend data
-      const updated = { ...res.task, category: res.task.categoryId } as any;
-      setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
-      
-      // Clear status override
-      setTaskStatMap(prev => {
-        const next = { ...prev };
-        delete next[taskId];
-        return next;
-      });
+    try {
+      const res = await updateTask(taskId, { status, timezoneOffset: new Date().getTimezoneOffset() });
+      if (res.task) {
+        // Final sync with backend data
+        const updated = { ...res.task, category: res.task.categoryId } as any;
+        setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
+        
+        // Clear status override
+        setTaskStatMap(prev => {
+          const next = { ...prev };
+          delete next[taskId];
+          return next;
+        });
+        toast.success(`Task moved to ${status.replace('_', ' ')}`);
+      } else {
+        toast.error("Failed to update task status");
+      }
+    } catch (err) {
+      toast.error("Error updating task status");
     }
   }, []);
 
@@ -206,10 +221,17 @@ export function ViewProvider({
   }, []);
 
   const saveCurrentView = useCallback(async (name: string, emoji: string) => {
-    const res = await createSavedView({ name, emoji, filters: { ...filters } });
-    if (res.savedView) {
-      setSavedViews(prev => [...prev, res.savedView as any]);
-      setActiveViewId(res.savedView.id);
+    try {
+      const res = await createSavedView({ name, emoji, filters: { ...filters } });
+      if (res.savedView) {
+        setSavedViews(prev => [...prev, res.savedView as any]);
+        setActiveViewId(res.savedView.id);
+        toast.success(`View "${name}" saved`);
+      } else {
+        toast.error("Failed to save view");
+      }
+    } catch (err) {
+      toast.error("Error saving view");
     }
   }, [filters]);
 
@@ -245,21 +267,31 @@ export function ViewProvider({
   const addCategory = useCallback(async (label: string) => {
     const id    = label.trim().toUpperCase().replace(/\s+/g, '_');
     const exist = allCategories.find(c => c.id === id || c.label.toLowerCase() === label.trim().toLowerCase());
-    if (exist) return exist;
+    if (exist) {
+      toast.error(`Category "${label}" already exists`);
+      return exist;
+    }
     
-    const colors = CUSTOM_CAT_COLORS[(customCategories.length) % CUSTOM_CAT_COLORS.length];
-    const res = await createCategory({ label: label.trim(), colorCode: JSON.stringify(colors) });
-    
-    if (res.category) {
-      const newCat: CategoryDef = { 
-        id: res.category.id, 
-        label: res.category.label, 
-        dot: colors.dot, 
-        badge: colors.badge, 
-        text: colors.text 
-      };
-      setCustomCats(prev => [...prev, newCat]);
-      return newCat;
+    try {
+      const colors = CUSTOM_CAT_COLORS[(customCategories.length) % CUSTOM_CAT_COLORS.length];
+      const res = await createCategory({ label: label.trim(), colorCode: JSON.stringify(colors) });
+      
+      if (res.category) {
+        const newCat: CategoryDef = { 
+          id: res.category.id, 
+          label: res.category.label, 
+          dot: colors.dot, 
+          badge: colors.badge, 
+          text: colors.text 
+        };
+        setCustomCats(prev => [...prev, newCat]);
+        toast.success(`Category "${label}" added`);
+        return newCat;
+      } else {
+        toast.error("Failed to create category");
+      }
+    } catch (err) {
+      toast.error("Error creating category");
     }
   }, [allCategories, customCategories.length]);
 

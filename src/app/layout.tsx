@@ -5,6 +5,7 @@ import "./globals.css";
 import AppLayout from "@/components/AppLayout";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { Toaster } from "sonner";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -93,6 +94,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className={`${inter.className} bg-[#fffcf9]`} suppressHydrationWarning>
+        <Toaster position="top-center" expand={true} richColors closeButton />
         <AppLayout 
           initialTasks={safeTasks} 
           initialCategories={safeCategories} 

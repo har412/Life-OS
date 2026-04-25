@@ -4,6 +4,7 @@ import { X, Mic, Square, Loader2, Sparkles, ChevronDown, UploadCloud, Trash2, Ca
 import { PRIORITY_META, type Priority, type Task } from "@/lib/taskData";
 import { useView } from "@/lib/viewContext";
 import CategorySelect from "@/components/CategorySelect";
+import { toast } from "sonner";
 
 const PRIS = ["LOW","MEDIUM","HIGH","URGENT"] as const;
 const PRI_META_LOCAL: Record<string, { label: string; bg: string; text: string; border: string; dot: string }> = {
@@ -66,7 +67,7 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
       setIsRecording(true);
       setRecordingTime(0);
     } catch (err) {
-      alert("Could not access microphone.");
+      toast.error("Could not access microphone. Please check your browser permissions.");
     }
   };
 
@@ -114,7 +115,10 @@ export default function AddTaskModal({ onClose }: { onClose: () => void }) {
   };
 
   function handleSave() {
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      toast.error("Please enter a task title");
+      return;
+    }
     addTask({
       title,
       category: catId,
