@@ -8,24 +8,36 @@ const receiver = new Receiver({
 });
 
 export async function POST(req: NextRequest) {
+  console.log("📨 Received QStash Webhook request");
+  
   // 1. Verify the signature from QStash
   const signature = req.headers.get("upstash-signature");
   if (!signature) {
+    console.warn("⚠️ Missing upstash-signature header");
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
   const body = await req.text();
+  console.log("📄 Webhook Body received:", body);
+
   const isValid = await receiver.verify({
     signature,
     body,
+  }).catch(err => {
+    console.error("❌ Signature verification crashed:", err);
+    return false;
   });
 
   if (!isValid) {
+    console.warn("⚠️ Invalid QStash signature");
     return new NextResponse("Invalid signature", { status: 401 });
   }
 
+  console.log("✅ Signature verified");
+
   // 2. Parse the job data
   const { taskId, userId } = JSON.parse(body);
+  console.log(`🔍 Processing Alert: TaskID=${taskId}, UserID=${userId}`);
 
   try {
     const task = await prisma.task.findUnique({
