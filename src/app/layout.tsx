@@ -15,13 +15,21 @@ export const viewport: Viewport = {
 const inter = Inter({ subsets: ["latin"], weight: ["400","500","600","700"] });
 
 export const metadata: Metadata = {
-  title: "Life OS — Personal Task Manager",
+  title: "LifeOS — Personal Task Manager",
   description: "Your personal life operating system",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Life OS",
+    title: "LifeOS",
   },
 };
 
@@ -84,7 +92,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-stone-50`} suppressHydrationWarning>
+      <body className={`${inter.className} bg-[#fffcf9]`} suppressHydrationWarning>
         <AppLayout 
           initialTasks={safeTasks} 
           initialCategories={safeCategories} 
