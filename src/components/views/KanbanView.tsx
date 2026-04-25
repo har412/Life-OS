@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { ChevronLeft, ChevronRight, Plus, MessageSquare, Image as ImageIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, MessageSquare, Image as ImageIcon, Check, X } from "lucide-react";
 import { getCatMeta, PRIORITY_META, formatDate, type Task, type Status } from "@/lib/taskData";
 import { useView } from "@/lib/viewContext";
 
@@ -70,22 +70,48 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
 
   const [quickAddCol, setQuickAddCol] = useState<Status | null>(null);
   const [quickAddTitle, setQuickAddTitle] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleQuickAdd = (e: React.FormEvent, status: Status) => {
-    e.preventDefault();
-    if (!quickAddTitle.trim()) { setQuickAddCol(null); return; }
-    const newTask: Task = {
-      id: `t_${Date.now()}`,
-      title: quickAddTitle.trim(),
-      category: allCategories[0]?.id || "WORK",
-      priority: "MEDIUM",
-      status: status,
-      dueDate: null,
-    };
-    addTask(newTask);
-    setTaskState(prev => [...prev, newTask]);
+  const handleQuickAdd = async (e?: React.FormEvent, status?: Status) => {
+    if (e) e.preventDefault();
+    const targetStatus = status || quickAddCol;
+    if (!targetStatus || !quickAddTitle.trim()) {
+      setQuickAddCol(null);
+      setQuickAddTitle("");
+      return;
+    }
+
+    const title = quickAddTitle.trim();
+    // Clear state immediately for smooth UI
     setQuickAddCol(null);
     setQuickAddTitle("");
+
+    const newTask: Task = {
+      id: `t_${Date.now()}`,
+      title,
+      category: allCategories[0]?.id || "WORK",
+      priority: "MEDIUM",
+      status: targetStatus,
+      dueDate: null,
+    };
+
+    // Optimistic update
+    setTaskState(prev => [...prev, newTask]);
+    
+    try {
+      await addTask(newTask);
+    } catch (err) {
+      console.error("Failed to add task:", err);
+      // Rollback on failure
+      setTaskState(prev => prev.filter(t => t.id !== newTask.id));
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, status: Status) => {
+    if (e.key === "Escape") {
+      setQuickAddCol(null);
+      setQuickAddTitle("");
+    }
   };
 
   // Sync when props change (including title/status/etc)
@@ -174,9 +200,27 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                 </div>
               )}
               {quickAddCol === mobileCol.id ? (
-                <form onSubmit={e => handleQuickAdd(e, mobileCol.id)} className="bg-white border border-orange-300 shadow-sm rounded-xl p-2.5 mt-2 animate-in fade-in duration-200">
-                  <input autoFocus value={quickAddTitle} onChange={e => setQuickAddTitle(e.target.value)} onBlur={() => setQuickAddCol(null)} placeholder="Task title..." className="w-full text-sm outline-none placeholder:text-stone-300 text-stone-700"/>
-                </form>
+                <div className="bg-white border-2 border-orange-200 shadow-lg rounded-xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                  <form onSubmit={e => handleQuickAdd(e, mobileCol.id)} className="flex items-center gap-2">
+                    <input 
+                      autoFocus 
+                      ref={inputRef}
+                      value={quickAddTitle} 
+                      onChange={e => setQuickAddTitle(e.target.value)} 
+                      onKeyDown={e => handleKeyDown(e, mobileCol.id)}
+                      placeholder="Task title..." 
+                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-300 text-stone-700 py-1"
+                    />
+                    <div className="flex items-center gap-1">
+                      <button type="submit" className="p-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors">
+                        <Check className="w-3.5 h-3.5" strokeWidth={3}/>
+                      </button>
+                      <button type="button" onClick={() => setQuickAddCol(null)} className="p-1.5 rounded-lg bg-stone-100 text-stone-400 hover:bg-stone-200 hover:text-stone-600 transition-colors">
+                        <X className="w-3.5 h-3.5" strokeWidth={3}/>
+                      </button>
+                    </div>
+                  </form>
+                </div>
               ) : (
                 <button onClick={() => { setQuickAddCol(mobileCol.id); setQuickAddTitle(""); }} className="w-full flex items-center justify-center gap-1.5 py-3 rounded-xl text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-50 border border-dashed border-stone-200 transition-colors">
                   <Plus className="w-3.5 h-3.5" /> Add task
@@ -214,9 +258,27 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                       </div>
                     )}
                     {quickAddCol === col.id ? (
-                      <form onSubmit={e => handleQuickAdd(e, col.id)} className="bg-white border border-orange-300 shadow-sm rounded-xl p-2.5 mt-2 animate-in fade-in duration-200">
-                        <input autoFocus value={quickAddTitle} onChange={e => setQuickAddTitle(e.target.value)} onBlur={() => setQuickAddCol(null)} placeholder="Task title..." className="w-full text-sm outline-none placeholder:text-stone-300 text-stone-700"/>
-                      </form>
+                      <div className="bg-white border-2 border-orange-200 shadow-lg rounded-xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                        <form onSubmit={e => handleQuickAdd(e, col.id)} className="flex items-center gap-2">
+                          <input 
+                            autoFocus 
+                            ref={inputRef}
+                            value={quickAddTitle} 
+                            onChange={e => setQuickAddTitle(e.target.value)} 
+                            onKeyDown={e => handleKeyDown(e, col.id)}
+                            placeholder="Task title..." 
+                            className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-300 text-stone-700 py-1"
+                          />
+                          <div className="flex items-center gap-1">
+                            <button type="submit" className="p-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors">
+                              <Check className="w-3.5 h-3.5" strokeWidth={3}/>
+                            </button>
+                            <button type="button" onClick={() => setQuickAddCol(null)} className="p-1.5 rounded-lg bg-stone-100 text-stone-400 hover:bg-stone-200 hover:text-stone-600 transition-colors">
+                              <X className="w-3.5 h-3.5" strokeWidth={3}/>
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     ) : (
                       <button onClick={() => { setQuickAddCol(col.id); setQuickAddTitle(""); }} className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-50 border border-dashed border-stone-200 transition-colors">
                         <Plus className="w-3.5 h-3.5" /> Add task
