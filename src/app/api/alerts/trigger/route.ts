@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Receiver } from "@upstash/qstash/nextjs";
+import { Receiver } from "@upstash/qstash";
 import { prisma } from "@/lib/prisma";
 
 const receiver = new Receiver({
