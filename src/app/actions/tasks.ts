@@ -29,6 +29,9 @@ export async function createTask(incomingData: any) {
     data.time = null;
   } else if (data.dueDate) {
     data.dueDate = new Date(data.dueDate);
+    if (!data.status || data.status === 'BACKLOG') {
+      data.status = 'SCHEDULED';
+    }
   }
 
   const task = await prisma.task.create({
@@ -57,6 +60,9 @@ export async function updateTask(id: string, incomingData: any) {
     data.time = null;
   } else if (data.dueDate) {
     data.dueDate = new Date(data.dueDate);
+    if (!data.status || data.status === 'BACKLOG') {
+      data.status = 'SCHEDULED';
+    }
   }
 
   // Map category to categoryId for Prisma

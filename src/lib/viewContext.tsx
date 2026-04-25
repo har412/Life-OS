@@ -101,6 +101,10 @@ export function ViewProvider({
   }, []);
 
   const addTask = useCallback(async (taskData: Partial<Task>) => {
+    // Force SCHEDULED if a date is provided
+    if (taskData.dueDate && (!taskData.status || taskData.status === 'BACKLOG')) {
+      taskData.status = 'SCHEDULED';
+    }
     const res = await createTask({ ...taskData, timezoneOffset: new Date().getTimezoneOffset() });
     if (res.task) {
       const normalized = { ...res.task, category: res.task.categoryId } as any;
