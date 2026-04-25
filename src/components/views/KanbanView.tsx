@@ -174,12 +174,20 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
         </div>
 
         {/* Column header */}
-        <div className="flex items-center gap-2 px-1">
-          <span className={`w-2.5 h-2.5 rounded-full ${mobileCol.dot}`} />
-          <span className="text-sm font-semibold text-stone-800">{mobileCol.label}</span>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${mobileCol.badge}`}>
-            {taskState.filter(t => t.status === mobileCol.id).length}
-          </span>
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full ${mobileCol.dot}`} />
+            <span className="text-sm font-semibold text-stone-800">{mobileCol.label}</span>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${mobileCol.badge}`}>
+              {taskState.filter(t => t.status === mobileCol.id).length}
+            </span>
+          </div>
+          <button 
+            onClick={() => { setQuickAddCol(mobileCol.id); setQuickAddTitle(""); }}
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Cards */}
@@ -190,17 +198,8 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
               {...provided.droppableProps}
               className={`space-y-2.5 min-h-[200px] rounded-2xl p-1 transition-colors ${snapshot.isDraggingOver ? "bg-orange-50" : ""}`}
             >
-              {taskState.filter(t => t.status === mobileCol.id).map((t, i) => (
-                <KanbanCard key={t.id} task={t} index={i} />
-              ))}
-              {provided.placeholder}
-              {taskState.filter(t => t.status === mobileCol.id).length === 0 && !snapshot.isDraggingOver && (
-                <div className="flex flex-col items-center justify-center h-28 rounded-xl border-2 border-dashed border-stone-200">
-                  <p className="text-xs text-stone-400">No tasks here</p>
-                </div>
-              )}
-              {quickAddCol === mobileCol.id ? (
-                <div className="bg-white border-2 border-orange-200 shadow-lg rounded-xl p-2 animate-in fade-in zoom-in-95 duration-200 mr-20">
+              {quickAddCol === mobileCol.id && (
+                <div className="bg-white border-2 border-orange-200 shadow-lg rounded-xl p-2 mb-3 animate-in fade-in slide-in-from-top-2 duration-200">
                   <form onSubmit={e => handleQuickAdd(e, mobileCol.id)} className="flex items-center gap-2">
                     <input 
                       autoFocus 
@@ -208,7 +207,7 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                       value={quickAddTitle} 
                       onChange={e => setQuickAddTitle(e.target.value)} 
                       onKeyDown={e => handleKeyDown(e, mobileCol.id)}
-                      placeholder="Task title..." 
+                      placeholder="Add task to this column..." 
                       className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-300 text-stone-700 py-1"
                     />
                     <div className="flex items-center gap-1">
@@ -221,10 +220,15 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                     </div>
                   </form>
                 </div>
-              ) : (
-                <button onClick={() => { setQuickAddCol(mobileCol.id); setQuickAddTitle(""); }} className="w-full mr-20 flex items-center justify-center gap-1.5 py-3 rounded-xl text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-50 border border-dashed border-stone-200 transition-colors">
-                  <Plus className="w-3.5 h-3.5" /> Add task
-                </button>
+              )}
+              {taskState.filter(t => t.status === mobileCol.id).map((t, i) => (
+                <KanbanCard key={t.id} task={t} index={i} />
+              ))}
+              {provided.placeholder}
+              {taskState.filter(t => t.status === mobileCol.id).length === 0 && !snapshot.isDraggingOver && !quickAddCol && (
+                <div className="flex flex-col items-center justify-center h-28 rounded-xl border-2 border-dashed border-stone-200">
+                  <p className="text-xs text-stone-400">No tasks here</p>
+                </div>
               )}
             </div>
           )}
@@ -241,6 +245,12 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                 <span className={`w-2.5 h-2.5 rounded-full ${col.dot}`} />
                 <span className="text-sm font-semibold text-stone-800 flex-1">{col.label}</span>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${col.badge}`}>{colTasks.length}</span>
+                <button 
+                  onClick={() => { setQuickAddCol(col.id); setQuickAddTitle(""); }}
+                  className="w-6 h-6 flex items-center justify-center rounded-md text-stone-400 hover:bg-stone-50 hover:text-stone-600 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
               </div>
               <Droppable droppableId={col.id}>
                 {(provided, snapshot) => (
@@ -250,15 +260,8 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                     className={`flex-1 p-3 space-y-2 overflow-y-auto transition-colors ${snapshot.isDraggingOver ? "bg-orange-50/50" : ""}`}
                     style={{ minHeight: 400 }}
                   >
-                    {colTasks.map((t, i) => <KanbanCard key={t.id} task={t} index={i} />)}
-                    {provided.placeholder}
-                    {colTasks.length === 0 && !snapshot.isDraggingOver && (
-                      <div className="flex items-center justify-center h-20 rounded-xl border-2 border-dashed border-stone-100">
-                        <p className="text-xs text-stone-300 font-medium">Drop here</p>
-                      </div>
-                    )}
-                    {quickAddCol === col.id ? (
-                      <div className="bg-white border-2 border-orange-200 shadow-lg rounded-xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                    {quickAddCol === col.id && (
+                      <div className="bg-white border-2 border-orange-200 shadow-lg rounded-xl p-2 mb-2 animate-in fade-in slide-in-from-top-1 duration-200">
                         <form onSubmit={e => handleQuickAdd(e, col.id)} className="flex items-center gap-2">
                           <input 
                             autoFocus 
@@ -279,10 +282,13 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                           </div>
                         </form>
                       </div>
-                    ) : (
-                      <button onClick={() => { setQuickAddCol(col.id); setQuickAddTitle(""); }} className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-50 border border-dashed border-stone-200 transition-colors">
-                        <Plus className="w-3.5 h-3.5" /> Add task
-                      </button>
+                    )}
+                    {colTasks.map((t, i) => <KanbanCard key={t.id} task={t} index={i} />)}
+                    {provided.placeholder}
+                    {colTasks.length === 0 && !snapshot.isDraggingOver && !quickAddCol && (
+                      <div className="flex items-center justify-center h-20 rounded-xl border-2 border-dashed border-stone-100">
+                        <p className="text-xs text-stone-300 font-medium">Drop here</p>
+                      </div>
                     )}
                   </div>
                 )}
