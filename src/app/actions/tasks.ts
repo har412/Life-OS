@@ -18,6 +18,12 @@ export async function createTask(incomingData: any) {
   if (data.id) delete data.id; 
   data.userId = session.user.id;
 
+  // Map category to categoryId for Prisma
+  if (data.category) {
+    data.categoryId = data.category;
+    delete data.category;
+  }
+
   if (data.status === 'BACKLOG') {
     data.dueDate = null;
     data.time = null;
@@ -51,6 +57,12 @@ export async function updateTask(id: string, incomingData: any) {
     data.time = null;
   } else if (data.dueDate) {
     data.dueDate = new Date(data.dueDate);
+  }
+
+  // Map category to categoryId for Prisma
+  if (data.category) {
+    data.categoryId = data.category;
+    delete data.category;
   }
 
   const task = await prisma.task.update({
