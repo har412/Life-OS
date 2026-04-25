@@ -3,13 +3,11 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
-import { alertQueue } from "@/lib/queue";
-import { startAlertWorker } from "@/lib/worker";
+import { qstashClient } from "@/lib/qstash";
+
+const APP_URL = process.env.APP_URL || "http://localhost:3000";
 
 // Ensure worker is running on the server
-if (typeof window === "undefined") {
-  startAlertWorker();
-}
 
 
 export async function getTasks() {
@@ -60,18 +58,18 @@ export async function createTask(incomingData: any) {
     const [hours, minutes] = task.time.split(':').map(Number);
     alertTime.setHours(hours || 0, minutes || 0, 0, 0);
 
-    const delay = alertTime.getTime() - Date.now();
-    console.log(`📅 Scheduling alert for ${alertTime.toISOString()} (Delay: ${delay}ms)`);
+    const delay = Math.floor((alertTime.getTime() - Date.now()) / 1000); // QStash uses seconds for delay
+    console.log(`📅 Scheduling QStash alert for ${alertTime.toISOString()} (Delay: ${delay}s)`);
     
     if (delay > 0) {
-      const job = await alertQueue?.add(
-        `alert-${task.id}`,
-        { taskId: task.id, userId: session.user.id },
-        { delay, jobId: `alert-${task.id}` }
-      );
-      console.log(`✅ Job added to queue: ${job?.id}`);
+      await qstashClient.publishJSON({
+        url: `${APP_URL}/api/alerts/trigger`,
+        body: { taskId: task.id, userId: session.user.id },
+        delay: delay,
+      });
+      console.log(`✅ Message published to QStash`);
     } else {
-      console.log(`⚠️ Delay is negative (${delay}ms), skipping schedule.`);
+      console.log(`⚠️ Delay is negative (${delay}s), skipping QStash publish.`);
     }
   }
 
@@ -143,24 +141,16 @@ export async function updateTask(id: string, incomingData: any) {
     const [hours, minutes] = task.time.split(':').map(Number);
     alertTime.setHours(hours || 0, minutes || 0, 0, 0);
 
-    const delay = alertTime.getTime() - Date.now();
-    console.log(`📅 Rescheduling alert for ${alertTime.toISOString()} (Delay: ${delay}ms)`);
+    const delay = Math.floor((alertTime.getTime() - Date.now()) / 1000);
+    console.log(`📅 Rescheduling QStash alert for ${alertTime.toISOString()} (Delay: ${delay}s)`);
 
     if (delay > 0) {
-      // BullMQ will replace the existing job with the same jobId
-      const job = await alertQueue?.add(
-        `alert-${task.id}`,
-        { taskId: task.id, userId: session.user.id },
-        { delay, jobId: `alert-${task.id}` }
-      );
-      console.log(`✅ Job updated in queue: ${job?.id}`);
-    } else {
-      // If time passed, remove existing job if any
-      const job = await alertQueue?.getJob(`alert-${task.id}`);
-      if (job) {
-        await job.remove();
-        console.log(`🗑️ Removed expired job: alert-${task.id}`);
-      }
+      await qstashClient.publishJSON({
+        url: `${APP_URL}/api/alerts/trigger`,
+        body: { taskId: task.id, userId: session.user.id },
+        delay: delay,
+      });
+      console.log(`✅ New message published to QStash`);
     }
   }
 
