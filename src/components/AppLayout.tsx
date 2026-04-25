@@ -4,6 +4,11 @@ import { useEffect } from "react";
 import { SessionProvider, useSession } from "next-auth/react";
 import Sidebar from "@/components/Sidebar";
 import { ViewProvider } from "@/lib/viewContext";
+import { useState } from "react";
+import { Sparkles } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const ThinkAloudModal = dynamic(() => import("@/components/ThinkAloudModal"), { ssr: false });
 
 function AuthGuard({ 
   children, 
@@ -20,6 +25,8 @@ function AuthGuard({
 }) {
   const { status } = useSession();
   const router = useRouter();
+
+  const [showThinkAloud, setShowThinkAloud] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated" && !isAuthPage) {
@@ -56,7 +63,19 @@ function AuthGuard({
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
+        
+        {/* Floating Voice Button for Mobile */}
+        {pathname === "/" && (
+          <button 
+            onClick={() => setShowThinkAloud(true)}
+            className="fixed bottom-20 right-6 w-14 h-14 bg-purple-600 text-white rounded-2xl shadow-xl shadow-purple-200 flex items-center justify-center z-40 active:scale-90 transition-transform"
+          >
+            <Sparkles className="w-6 h-6" />
+          </button>
+        )}
       </div>
+
+      {showThinkAloud && <ThinkAloudModal onClose={() => setShowThinkAloud(false)} />}
     </ViewProvider>
   );
 }

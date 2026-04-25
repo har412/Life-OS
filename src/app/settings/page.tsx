@@ -1,21 +1,22 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Bell, Tag, User, Shield, Smartphone, ChevronRight, ArrowLeft, LogOut } from "lucide-react";
+import { Bell, Tag, User, Shield, Smartphone, ChevronRight, ArrowLeft, LogOut, Brain } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import dynamic from "next/dynamic";
 import { changePassword } from "@/app/actions/auth";
 
 const CategoryManager = dynamic(() => import("@/components/CategoryManager"), { ssr: false });
 const PushSubscriptionManager = dynamic(() => import("@/components/PushSubscriptionManager"), { ssr: false });
+const AISettingsManager = dynamic(() => import("@/components/AISettingsManager"), { ssr: false });
 
-type Tab = "categories" | "notifications" | "account" /* | "display" */;
+type Tab = "categories" | "notifications" | "account" | "ai" /* | "display" */;
 
 const TABS: { id: Tab; label: string; icon: React.ElementType; desc: string }[] = [
   { id:"categories",    label:"Categories",    icon:Tag,        desc:"Manage task categories, colors, and reassignments" },
   { id:"notifications", label:"Notifications", icon:Bell,       desc:"Alert preferences and reminders" },
+  { id:"ai",            label:"AI Intelligence",icon:Brain,     desc:"Configure your custom AI brains and keys" },
   { id:"account",       label:"Account",       icon:User,       desc:"Profile, email and password" },
-  // { id:"display",       label:"Display",       icon:Smartphone, desc:"Theme, language and layout" },
 ];
 
 /* ─── Placeholder sections ─────────────────── */
@@ -237,6 +238,7 @@ export default function SettingsPage() {
   const tabContent = {
     categories:    <CategoryManager/>,
     notifications: <NotificationsTab/>,
+    ai:            <AISettingsManager/>,
     account:       <AccountTab/>,
     // display:       <DisplayTab/>,
   } as Record<Tab, React.ReactNode>;

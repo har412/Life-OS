@@ -28,6 +28,18 @@ model User {
   savedViews     SavedView[]
   alerts         Alert[]
   pushSubscriptions PushSubscription[]
+  aiSettings        AISettings?
+}
+
+model AISettings {
+  id           String   @id @default(uuid())
+  provider     String   @default("OPENAI") // OPENAI, GEMINI, CLAUDE, OPENROUTER, NVIDIA
+  apiKey       String?
+  modelName    String?  @default("gpt-4o")
+  baseUrl      String?  // Custom endpoint for NVIDIA/OpenRouter
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt    DateTime @updatedAt
 }
 
 model Category {

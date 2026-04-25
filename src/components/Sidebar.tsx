@@ -1,12 +1,16 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { GripVertical, NotebookPen, BarChart3, Settings, Plus, Trash2, Pin, LogOut } from "lucide-react";
+import { GripVertical, NotebookPen, BarChart3, Settings, Plus, Trash2, Pin, LogOut, Sparkles } from "lucide-react";
 import { useView } from "@/lib/viewContext";
 import { type SavedView, PRESET_SAVED_VIEWS } from "@/lib/taskData";
 import { useSession, signOut } from "next-auth/react";
 import NotificationBell from "@/components/NotificationBell";
+import dynamic from "next/dynamic";
+
+const ThinkAloudModal = dynamic(() => import("@/components/ThinkAloudModal"), { ssr: false });
 
 /* ─── Logo ────────────────────────────────── */
 function LifeOSLogo() {
@@ -104,6 +108,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { savedViews, activeViewId, saveCurrentView, defaultViewId, loadDefaultView, reorderViews } = useView();
+  const [showThinkAloud, setShowThinkAloud] = useState(false);
   const onTasksPage = pathname === "/";
 
   const userInitial = session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || "U";
@@ -129,6 +134,15 @@ export default function Sidebar() {
             <p className="text-[11px] text-stone-400 mt-0.5 font-medium">Personal Assistant</p>
           </div>
         </Link>
+      {/* Think Aloud AI */}
+      <div className="px-3 pb-2">
+        <button 
+          onClick={() => setShowThinkAloud(true)}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-100 transition-all active:scale-[0.98] group"
+        >
+          <Sparkles className="w-4 h-4 group-hover:animate-pulse" />
+          <span className="text-sm font-bold tracking-tight">Think Aloud</span>
+        </button>
       </div>
 
       <div className="mx-4 h-px bg-stone-100 mb-3" />
@@ -205,6 +219,7 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {showThinkAloud && <ThinkAloudModal onClose={() => setShowThinkAloud(false)} />}
     </aside>
   );
 }

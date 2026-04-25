@@ -4,19 +4,28 @@ Life-OS is a comprehensive task and alert management system built with Next.js. 
 
 ## 🚀 Features
 - **Dynamic Views**: Table, Kanban, and Week views for task management.
-- **Backlog Management**: Strict rules to keep backlog clean (no due dates in backlog).
-- **Smart Scheduling**: Automatic status transitions when adding/removing due dates.
-- **Categories & Priorities**: Custom categories with color coding and priority levels.
-- **Alert System**: Scheduled notifications via BullMQ.
-- **Voice Input**: Create tasks using voice commands.
+- **Think Aloud AI**: Speak for up to 10 minutes; AI extracts tasks, deadlines, and priorities automatically.
+- **AI Intelligence (BYOK)**: Bring Your Own Key support for OpenAI, Gemini, Claude, OpenRouter, and NVIDIA.
+- **Smart Alerts**: Multi-stage notifications (e.g., 10m before + overdue) using QStash.
+- **Mobile Optimized**: PWA support with a dedicated Inbox and action-button notifications.
 
 ## 🛠 Technology Stack
 - **Framework**: [Next.js 15+](https://nextjs.org) (App Router)
 - **Database**: PostgreSQL with [Prisma ORM](https://www.prisma.io/)
-- **Authentication**: [NextAuth.js](https://next-auth.js.org/) (Auth.js)
-- **Styling**: [TailwindCSS](https://tailwindcss.com/)
-- **Icons**: [Lucide-react](https://lucide.dev/)
-- **Background Tasks**: [BullMQ](https://docs.bullmq.io/) (for scheduling alerts)
+- **AI/LLM**: Support for OpenAI, Google Gemini, Anthropic, and OpenRouter
+- **Background Tasks**: [Upstash QStash](https://upstash.com/docs/qstash/overall/getstarted) (for scheduling alerts)
+- **Authentication**: [NextAuth.js](https://next-auth.js.org/)
+- **Styling**: Vanilla CSS + Tailwind
+
+## 🧠 AI Intelligence (Bring Your Own Key)
+Life-OS is designed to be privacy-first and cost-effective. Instead of a monthly subscription, you provide your own API keys.
+1. **STT (Speech-to-Text)**: Converts your "Think Aloud" sessions into text.
+2. **LLM Extraction**: Analyzes the transcript to create structured tasks (Title, Category, Due Date, etc.).
+
+Supported Providers:
+- **OpenAI**: Best for high-accuracy Whisper transcription.
+- **Google Gemini**: Excellent for long-form audio processing (10 min+).
+- **OpenRouter/NVIDIA**: Use any open-source model (Llama-3, etc.).
 
 ## 📁 Project Structure
 - `src/app/`: Next.js App Router routes and Server Actions.
