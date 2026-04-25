@@ -296,22 +296,40 @@ export function ViewProvider({
   }, [allCategories, customCategories.length]);
 
   const editCategory = useCallback(async (id: string, newLabel: string, colorIndex?: number) => {
-    const colors = colorIndex !== undefined ? CUSTOM_CAT_COLORS[colorIndex % CUSTOM_CAT_COLORS.length] : undefined;
-    await updateCategory(id, { label: newLabel, colorCode: colors ? JSON.stringify(colors) : undefined });
-    
-    const updater = (cat: CategoryDef): CategoryDef => {
-      if (cat.id !== id) return cat;
-      return { ...cat, label: newLabel.trim() || cat.label, ...(colors || {}) };
-    };
-    setCustomCats(prev => prev.map(updater));
+    try {
+      const colors = colorIndex !== undefined ? CUSTOM_CAT_COLORS[colorIndex % CUSTOM_CAT_COLORS.length] : undefined;
+      const res = await updateCategory(id, { label: newLabel, colorCode: colors ? JSON.stringify(colors) : undefined });
+      
+      if (res.category) {
+        const updater = (cat: CategoryDef): CategoryDef => {
+          if (cat.id !== id) return cat;
+          return { ...cat, label: newLabel.trim() || cat.label, ...(colors || {}) };
+        };
+        setCustomCats(prev => prev.map(updater));
+        toast.success("Category updated");
+      } else {
+        toast.error("Failed to update category");
+      }
+    } catch (err) {
+      toast.error("Error updating category");
+    }
   }, []);
 
   const deleteCategoryMethod = useCallback(async (id: string, reassignToId?: string) => {
-    await deleteCategory(id, reassignToId);
-    // Remove from custom list
-    setCustomCats(prev => prev.filter(c => c.id !== id));
-    // Remove from active filters
-    setFiltersState(prev => ({ ...prev, categories: prev.categories.filter(c => c !== id) }));
+    try {
+      const res = await deleteCategory(id, reassignToId);
+      if (res.success) {
+        // Remove from custom list
+        setCustomCats(prev => prev.filter(c => c.id !== id));
+        // Remove from active filters
+        setFiltersState(prev => ({ ...prev, categories: prev.categories.filter(c => c !== id) }));
+        toast.success("Category deleted");
+      } else {
+        toast.error(res.error || "Failed to delete category");
+      }
+    } catch (err) {
+      toast.error("Error deleting category");
+    }
   }, []);
 
   return (
