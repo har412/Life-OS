@@ -200,7 +200,7 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                 </div>
               )}
               {quickAddCol === mobileCol.id ? (
-                <div className="bg-white border-2 border-orange-200 shadow-lg rounded-xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                <div className="bg-white border-2 border-orange-200 shadow-lg rounded-xl p-2 animate-in fade-in zoom-in-95 duration-200 mr-20">
                   <form onSubmit={e => handleQuickAdd(e, mobileCol.id)} className="flex items-center gap-2">
                     <input 
                       autoFocus 
@@ -222,7 +222,7 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                   </form>
                 </div>
               ) : (
-                <button onClick={() => { setQuickAddCol(mobileCol.id); setQuickAddTitle(""); }} className="w-full flex items-center justify-center gap-1.5 py-3 rounded-xl text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-50 border border-dashed border-stone-200 transition-colors">
+                <button onClick={() => { setQuickAddCol(mobileCol.id); setQuickAddTitle(""); }} className="w-full mr-20 flex items-center justify-center gap-1.5 py-3 rounded-xl text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-50 border border-dashed border-stone-200 transition-colors">
                   <Plus className="w-3.5 h-3.5" /> Add task
                 </button>
               )}
