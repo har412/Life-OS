@@ -3,8 +3,8 @@ import dynamic from "next/dynamic";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Plus, AlertTriangle, CheckCircle2, ChevronDown, Check, Settings, LogOut, GripVertical, Trash2 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { Plus, AlertTriangle, CheckCircle2, ChevronDown, Check, GripVertical, Trash2, Settings, LogOut } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
 import { useView } from "@/lib/viewContext";
 import { type SortField, PRESET_SAVED_VIEWS } from "@/lib/taskData";
 import FilterBar from "@/components/FilterBar";
@@ -12,6 +12,7 @@ import WeekView from "@/components/views/WeekView";
 import TableView from "@/components/views/TableView";
 import TaskDetailsModal from "@/components/TaskDetailsModal";
 import AddTaskModal from "@/components/AddTaskModal";
+import LandingPage from "@/components/LandingPage";
 
 const KanbanView = dynamic(() => import("@/components/views/KanbanView"), { ssr: false });
 
@@ -77,10 +78,15 @@ function ProgressStrip({ total, done, overdue }: { total:number; done:number; ov
 }
 
 export default function TasksPage() {
+  const { status } = useSession();
   const { tasks, filters, updateFilter, activeViewId, savedViews, taskCategoryMap, taskStatusMap, loadView, resetFilters, activeTaskId, reorderViews, deleteView } = useView();
   const [search, setSearch] = useState("");
   const [mobileViewsOpen, setMobileViewsOpen] = useState(false);
   const [showDesktopAdd, setShowDesktopAdd] = useState(false);
+
+  if (status === "unauthenticated") {
+    return <LandingPage />;
+  }
 
   const onDragEnd = (result: any) => {
     if (!result.destination) return;

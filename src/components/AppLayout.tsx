@@ -24,16 +24,18 @@ function AuthGuard({
 }) {
   const { status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
-    if (status === "unauthenticated" && !isAuthPage) {
+    const isHomePage = pathname === "/";
+    if (status === "unauthenticated" && !isAuthPage && !isHomePage) {
       router.push("/login");
     } else if (status === "authenticated" && isAuthPage) {
       router.push("/");
     }
-  }, [status, isAuthPage, router]);
+  }, [status, isAuthPage, pathname, router]);
 
   if (status === "loading") {
     return <div className="min-h-screen flex items-center justify-center bg-stone-50"><p className="text-stone-500 font-medium animate-pulse">Loading workspace...</p></div>;

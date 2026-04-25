@@ -6,17 +6,17 @@ import { getCatMeta, PRIORITY_META, formatDate, type Task, type Status } from "@
 import { useView } from "@/lib/viewContext";
 
 const COLUMNS: { id: Status; label: string; dot: string; badge: string }[] = [
-  { id: "BACKLOG",     label: "Backlog",     dot: "bg-stone-400",   badge: "bg-stone-100 text-stone-600" },
-  { id: "SCHEDULED",  label: "Scheduled",   dot: "bg-amber-400",   badge: "bg-amber-50 text-amber-700" },
-  { id: "IN_PROGRESS",label: "In Progress", dot: "bg-orange-400",  badge: "bg-orange-50 text-orange-700" },
-  { id: "DONE",       label: "Done",        dot: "bg-emerald-400", badge: "bg-emerald-50 text-emerald-700" },
+  { id: "BACKLOG", label: "Backlog", dot: "bg-stone-400", badge: "bg-stone-100 text-stone-600" },
+  { id: "SCHEDULED", label: "Scheduled", dot: "bg-amber-400", badge: "bg-amber-50 text-amber-700" },
+  { id: "IN_PROGRESS", label: "In Progress", dot: "bg-orange-400", badge: "bg-orange-50 text-orange-700" },
+  { id: "DONE", label: "Done", dot: "bg-emerald-400", badge: "bg-emerald-50 text-emerald-700" },
 ];
 
 function KanbanCard({ task, index }: { task: Task; index: number }) {
   const { allCategories, setActiveTaskId } = useView();
-  const cat  = getCatMeta(task.category, allCategories);
-  const pri  = PRIORITY_META[task.priority];
-  const due  = formatDate(task.dueDate);
+  const cat = getCatMeta(task.category, allCategories);
+  const pri = PRIORITY_META[task.priority];
+  const due = formatDate(task.dueDate);
   const done = task.status === "DONE";
   return (
     <Draggable draggableId={task.id} index={index}>
@@ -26,11 +26,10 @@ function KanbanCard({ task, index }: { task: Task; index: number }) {
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={() => setActiveTaskId(task.id)}
-          className={`bg-white border rounded-xl p-3.5 transition-all cursor-pointer active:cursor-grabbing select-none ${
-            snapshot.isDragging
+          className={`bg-white border rounded-xl p-3.5 transition-all cursor-pointer active:cursor-grabbing select-none ${snapshot.isDragging
               ? "shadow-xl border-orange-300 rotate-1 scale-[1.02]"
               : "border-stone-200 hover:border-stone-300 hover:shadow-sm"
-          } ${done ? "opacity-55" : ""}`}
+            } ${done ? "opacity-55" : ""}`}
         >
           <div className="flex items-start gap-2 mb-2">
             <div className={`w-1 rounded-full shrink-0 ${cat.dot}`} style={{ height: 28 }} />
@@ -50,10 +49,10 @@ function KanbanCard({ task, index }: { task: Task; index: number }) {
             </span>
             <div className="flex items-center gap-2 text-stone-400">
               {task.images && task.images.length > 0 && (
-                <div className="flex items-center gap-1 text-xs font-medium"><ImageIcon className="w-3.5 h-3.5"/> {task.images.length}</div>
+                <div className="flex items-center gap-1 text-xs font-medium"><ImageIcon className="w-3.5 h-3.5" /> {task.images.length}</div>
               )}
               {task.comments && task.comments.length > 0 && (
-                <div className="flex items-center gap-1 text-xs font-medium"><MessageSquare className="w-3.5 h-3.5"/> {task.comments.length}</div>
+                <div className="flex items-center gap-1 text-xs font-medium"><MessageSquare className="w-3.5 h-3.5" /> {task.comments.length}</div>
               )}
             </div>
           </div>
@@ -97,7 +96,7 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
 
     // Optimistic update
     setTaskState(prev => [...prev, newTask]);
-    
+
     try {
       await addTask(newTask);
     } catch (err) {
@@ -150,9 +149,8 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                 <button
                   key={col.id}
                   onClick={() => setMobileColIndex(i)}
-                  className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl transition-all ${
-                    i === mobileColIndex ? "bg-orange-50" : "hover:bg-stone-50"
-                  }`}
+                  className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl transition-all ${i === mobileColIndex ? "bg-orange-50" : "hover:bg-stone-50"
+                    }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${col.dot}`} />
                   <span className={`text-[10px] font-semibold truncate ${i === mobileColIndex ? "text-orange-700" : "text-stone-500"}`}>
@@ -182,7 +180,7 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
               {taskState.filter(t => t.status === mobileCol.id).length}
             </span>
           </div>
-          <button 
+          <button
             onClick={() => { setQuickAddCol(mobileCol.id); setQuickAddTitle(""); }}
             className="w-7 h-7 flex items-center justify-center rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
           >
@@ -201,21 +199,21 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
               {quickAddCol === mobileCol.id && (
                 <div className="bg-white border-2 border-orange-200 shadow-lg rounded-xl p-2 mb-3 animate-in fade-in slide-in-from-top-2 duration-200">
                   <form onSubmit={e => handleQuickAdd(e, mobileCol.id)} className="flex items-center gap-2">
-                    <input 
-                      autoFocus 
+                    <input
+                      autoFocus
                       ref={inputRef}
-                      value={quickAddTitle} 
-                      onChange={e => setQuickAddTitle(e.target.value)} 
+                      value={quickAddTitle}
+                      onChange={e => setQuickAddTitle(e.target.value)}
                       onKeyDown={e => handleKeyDown(e, mobileCol.id)}
-                      placeholder="Add task to this column..." 
+                      placeholder="Add task to this column..."
                       className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-300 text-stone-700 py-1"
                     />
                     <div className="flex items-center gap-1">
                       <button type="submit" className="p-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors">
-                        <Check className="w-3.5 h-3.5" strokeWidth={3}/>
+                        <Check className="w-3.5 h-3.5" strokeWidth={3} />
                       </button>
                       <button type="button" onClick={() => setQuickAddCol(null)} className="p-1.5 rounded-lg bg-stone-100 text-stone-400 hover:bg-stone-200 hover:text-stone-600 transition-colors">
-                        <X className="w-3.5 h-3.5" strokeWidth={3}/>
+                        <X className="w-3.5 h-3.5" strokeWidth={3} />
                       </button>
                     </div>
                   </form>
@@ -245,7 +243,7 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                 <span className={`w-2.5 h-2.5 rounded-full ${col.dot}`} />
                 <span className="text-sm font-semibold text-stone-800 flex-1">{col.label}</span>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${col.badge}`}>{colTasks.length}</span>
-                <button 
+                <button
                   onClick={() => { setQuickAddCol(col.id); setQuickAddTitle(""); }}
                   className="w-6 h-6 flex items-center justify-center rounded-md text-stone-400 hover:bg-stone-50 hover:text-stone-600 transition-colors"
                 >
@@ -263,21 +261,21 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                     {quickAddCol === col.id && (
                       <div className="bg-white border-2 border-orange-200 shadow-lg rounded-xl p-2 mb-2 animate-in fade-in slide-in-from-top-1 duration-200">
                         <form onSubmit={e => handleQuickAdd(e, col.id)} className="flex items-center gap-2">
-                          <input 
-                            autoFocus 
+                          <input
+                            autoFocus
                             ref={inputRef}
-                            value={quickAddTitle} 
-                            onChange={e => setQuickAddTitle(e.target.value)} 
+                            value={quickAddTitle}
+                            onChange={e => setQuickAddTitle(e.target.value)}
                             onKeyDown={e => handleKeyDown(e, col.id)}
-                            placeholder="Task title..." 
+                            placeholder="Task title..."
                             className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-300 text-stone-700 py-1"
                           />
                           <div className="flex items-center gap-1">
                             <button type="submit" className="p-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors">
-                              <Check className="w-3.5 h-3.5" strokeWidth={3}/>
+                              <Check className="w-3.5 h-3.5" strokeWidth={3} />
                             </button>
                             <button type="button" onClick={() => setQuickAddCol(null)} className="p-1.5 rounded-lg bg-stone-100 text-stone-400 hover:bg-stone-200 hover:text-stone-600 transition-colors">
-                              <X className="w-3.5 h-3.5" strokeWidth={3}/>
+                              <X className="w-3.5 h-3.5" strokeWidth={3} />
                             </button>
                           </div>
                         </form>
