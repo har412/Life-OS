@@ -1,6 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { Plus, AlertTriangle, CheckCircle2, ChevronDown, Check, Settings, LogOut, GripVertical, Trash2 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useView } from "@/lib/viewContext";
