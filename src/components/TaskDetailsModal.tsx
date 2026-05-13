@@ -1,10 +1,12 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { X, MessageSquare, Image as ImageIcon, UploadCloud, Trash2, Calendar, Clock, ChevronDown } from "lucide-react";
+import { X, MessageSquare, Image as ImageIcon, UploadCloud, Trash2, Calendar, Clock, ChevronDown, Send, Loader2 } from "lucide-react";
 import { useView } from "@/lib/viewContext";
 import { getCatMeta, PRIORITY_META, STATUS_META, type Task } from "@/lib/taskData";
 import RichEditor from "@/components/RichEditor";
 import CategorySelect from "@/components/CategorySelect";
+import { createComment, deleteComment } from "@/app/actions/comments";
+import { toast } from "sonner";
 
 export default function TaskDetailsModal({ taskId }: { taskId: string }) {
   const { tasks, setActiveTaskId, taskDetailsMap, updateTaskDetails, allCategories, taskCategoryMap, taskStatusMap, deleteTask } = useView();
@@ -50,19 +52,58 @@ export default function TaskDetailsModal({ taskId }: { taskId: string }) {
     }
   };
 
-  const handleAddComment = () => {
-    // Basic check for empty or just empty tags like <p><br></p>
+  const [commentSaving, setCommentSaving] = useState(false);
+
+  const handleAddComment = async () => {
     const stripped = commentText.replace(/(<([^>]+)>)/gi, "").trim();
     if (!stripped) return;
-    
-    const newComment = {
-      id: `c_${Date.now()}`,
-      text: commentText, // Keep HTML
+    setCommentSaving(true);
+
+    // Optimistic update
+    const tempId = `temp_${Date.now()}`;
+    const tempComment = {
+      id: tempId,
+      text: commentText,
       createdAt: new Date().toISOString(),
-      author: "Harkirat" // Mock author
+      author: "You",
     };
-    updateTaskDetails(taskId, { comments: [...(task.comments || []), newComment] });
-    setCommentText(""); // Reset
+    updateTaskDetails(taskId, { comments: [...(task.comments || []), tempComment] });
+    setCommentText("");
+
+    try {
+      const res = await createComment(taskId, commentText);
+      if (res.comment) {
+        // Replace temp with real DB record
+        updateTaskDetails(taskId, {
+          comments: [
+            ...(task.comments || []).filter((c) => c.id !== tempId),
+            { ...res.comment, author: "You" },
+          ],
+        });
+      } else {
+        toast.error(res.error || "Failed to save comment");
+        // Revert optimistic update
+        updateTaskDetails(taskId, {
+          comments: (task.comments || []).filter((c) => c.id !== tempId),
+        });
+        setCommentText(commentText);
+      }
+    } catch {
+      toast.error("Failed to save comment");
+    } finally {
+      setCommentSaving(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    // Optimistic
+    updateTaskDetails(taskId, {
+      comments: (task.comments || []).filter((c) => c.id !== commentId),
+    });
+    const res = await deleteComment(commentId);
+    if (!res.success) {
+      toast.error("Failed to delete comment");
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,18 +129,20 @@ export default function TaskDetailsModal({ taskId }: { taskId: string }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-12">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-6 md:p-12">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm transition-opacity" 
         onClick={() => setActiveTaskId(null)}
       />
       
-      {/* Modal */}
-      <div className="relative bg-white rounded-3xl w-full max-w-4xl max-h-full flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      {/* Modal — full-screen sheet on mobile, centered dialog on sm+ */}
+      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-4xl h-[92dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
+        {/* Drag handle (mobile only) */}
+        <div className="sm:hidden w-10 h-1 bg-stone-200 rounded-full mx-auto mt-3 mb-1 shrink-0"/>
         
         {/* Header */}
-        <div className="flex items-start justify-between p-6 pb-4 border-b border-stone-100">
+        <div className="flex items-start justify-between px-4 sm:px-6 pt-3 sm:pt-6 pb-4 border-b border-stone-100 shrink-0">
           <div className="flex-1 pr-8">
             <input
               type="text"
@@ -166,7 +209,7 @@ export default function TaskDetailsModal({ taskId }: { taskId: string }) {
 
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-6 bg-stone-50 flex flex-col md:flex-row gap-8">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:p-6 bg-stone-50 flex flex-col md:flex-row gap-6 sm:gap-8">
           
           {/* Left Column (Main Content) */}
           <div className="flex-1 space-y-8">
@@ -243,16 +286,27 @@ export default function TaskDetailsModal({ taskId }: { taskId: string }) {
               <div className="space-y-4 mb-4">
                 {task.comments && task.comments.length > 0 ? (
                   task.comments.map(c => (
-                    <div key={c.id} className="flex gap-3">
+                    <div key={c.id} className="flex gap-3 group/comment">
                       <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
                         <span className="text-xs font-bold text-orange-700">{c.author?.[0] || "U"}</span>
                       </div>
                       <div className="flex-1 bg-white border border-stone-200 rounded-2xl rounded-tl-none p-3 shadow-sm">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-bold text-stone-900">{c.author || "User"}</span>
-                          <span className="text-[10px] font-medium text-stone-400">
-                            {new Date(c.createdAt).toLocaleDateString()} {new Date(c.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          </span>
+                          <span className="text-xs font-bold text-stone-900">{c.author || "You"}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-medium text-stone-400">
+                              {new Date(c.createdAt).toLocaleDateString()} {new Date(c.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </span>
+                            {!c.id.startsWith('temp_') && (
+                              <button
+                                onClick={() => handleDeleteComment(c.id)}
+                                className="opacity-0 group-hover/comment:opacity-100 p-0.5 rounded text-stone-300 hover:text-red-500 transition-all"
+                                title="Delete comment"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap rich-text-output" dangerouslySetInnerHTML={{ __html: c.text }} />
                       </div>
@@ -278,10 +332,11 @@ export default function TaskDetailsModal({ taskId }: { taskId: string }) {
                   <div className="mt-2 flex justify-end">
                     <button 
                       onClick={handleAddComment}
-                      disabled={!commentText.replace(/(<([^>]+)>)/gi, "").trim()}
-                      className="px-4 py-1.5 rounded-xl bg-orange-500 text-white text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-orange-600 transition-colors shadow-sm"
+                      disabled={!commentText.replace(/(<([^>]+)>)/gi, "").trim() || commentSaving}
+                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-orange-500 text-white text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-orange-600 transition-colors shadow-sm"
                     >
-                      Post
+                      {commentSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                      {commentSaving ? "Saving…" : "Post"}
                     </button>
                   </div>
                 </div>

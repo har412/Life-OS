@@ -37,29 +37,75 @@ function groupTasks(tasks: Task[], by: GroupBy, allCategories: CategoryDef[]) {
   }));
 }
 
-/* Mobile card row */
+/* Mobile card row — WhatsApp-style list item */
 function MobileCard({task, onClick}:{task:Task, onClick:()=>void}) {
-  const { allCategories } = useView();
-  const cat=getCatMeta(task.category, allCategories), pri=PRIORITY_META[task.priority], st=STATUS_META[task.status], due=formatDate(task.dueDate), done=task.status==="DONE";
+  const { allCategories, updateTaskStatus } = useView();
+  const cat=getCatMeta(task.category, allCategories);
+  const pri=PRIORITY_META[task.priority];
+  const st=STATUS_META[task.status];
+  const due=formatDate(task.dueDate);
+  const done=task.status==="DONE";
+  const cancelled=task.status==="CANCELLED";
+
+  const handleStatusToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (done) {
+      updateTaskStatus(task.id, "IN_PROGRESS");
+    } else {
+      updateTaskStatus(task.id, "DONE");
+    }
+  };
+
   return (
-    <div onClick={onClick} className={`bg-white border border-stone-200 rounded-xl p-3.5 hover:border-stone-300 hover:shadow-sm transition-all cursor-pointer ${done?"opacity-60":""}`}>
-      <div className="flex items-start gap-2.5">
-        <div className={`w-1 rounded-full shrink-0 ${cat.dot}`} style={{height:28}}/>
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium leading-snug ${done?"text-stone-400 line-through":"text-stone-800"}`}>{task.title}</p>
-          <div className="flex flex-wrap gap-1.5 mt-1.5">
-            <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md ${st.badge} ${st.text}`}>{st.label}</span>
-            <span className={`text-xs font-medium ${cat.text} flex items-center gap-1`}><span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`}/>{cat.label}</span>
-            {task.dueDate&&<span className={`text-xs font-medium ${due.isOverdue?"text-red-500":due.isToday?"text-orange-600":"text-stone-400"}`}>{due.isOverdue?"⚠️ ":"📅 "}{due.text}</span>}
-            <span className={`text-xs font-medium flex items-center gap-1 ${pri.text}`}><span className={`w-1.5 h-1.5 rounded-full ${pri.dot}`}/>{pri.label}</span>
-            {task.images && task.images.length > 0 && <span className="text-xs font-medium text-stone-400 flex items-center gap-1"><ImageIcon className="w-3 h-3"/> {task.images.length}</span>}
-            {task.comments && task.comments.length > 0 && <span className="text-xs font-medium text-stone-400 flex items-center gap-1"><MessageSquare className="w-3 h-3"/> {task.comments.length}</span>}
-          </div>
+    <div
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-3.5 bg-white border-b border-stone-100 active:bg-stone-50 transition-colors cursor-pointer ${done||cancelled?"opacity-55":""}`}
+    >
+      {/* Status toggle circle */}
+      <button
+        onClick={handleStatusToggle}
+        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${done ? "bg-emerald-500 border-emerald-500" : "border-stone-300 hover:border-orange-400"}`}
+        title={done ? "Mark as in progress" : "Mark as done"}
+      >
+        {done && (
+          <svg viewBox="0 0 10 8" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+            <polyline points="9 1 4 7 1 4"/>
+          </svg>
+        )}
+      </button>
+
+      {/* Category color bar */}
+      <div className={`w-0.5 h-9 rounded-full shrink-0 ${cat.dot}`}/>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <p className={`text-[14px] font-medium leading-snug truncate ${done||cancelled ? "text-stone-400 line-through" : "text-stone-800"}`}>
+          {task.title}
+        </p>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          {task.dueDate && (
+            <span className={`text-xs font-medium ${due.isOverdue&&!done?"text-red-500":due.isToday&&!done?"text-orange-600":"text-stone-400"}`}>
+              {due.isOverdue&&!done?"⚠️ ":"📅 "}{due.text}
+            </span>
+          )}
+          <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${st.badge} ${st.text}`}>{st.label}</span>
+          <span className={`text-[11px] font-medium ${cat.text} flex items-center gap-1`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`}/>{cat.label}
+          </span>
         </div>
+      </div>
+
+      {/* Right: priority dot + chevron */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={`w-2 h-2 rounded-full ${pri.dot}`} title={pri.label}/>
+        <svg className="w-4 h-4 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
       </div>
     </div>
   );
 }
+
 
 /* Desktop table row */
 function TableRow({task,selected,onSelect,onClick}:{task:Task;selected:boolean;onSelect:()=>void,onClick:()=>void}) {
@@ -134,13 +180,18 @@ export default function TableView({tasks,sortBy,sortDir,onSort,groupBy}:{tasks:T
     </div>
   );
 
-  // Mobile: show cards
+  // Mobile: WhatsApp-style full-bleed list
   const mobileView = (
-    <div className="space-y-2 lg:hidden">
+    <div className="lg:hidden bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
       {groups.map(g=>(
         <Fragment key={g.key}>
-          {groupBy!=="none"&&<div className="flex items-center gap-2 py-1.5"><span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${g.color}`}>{g.label}</span><span className="text-xs text-stone-400">{g.tasks.length}</span></div>}
-          {!collapsed.has(g.key)&&g.tasks.map(t=><MobileCard key={t.id} task={t} onClick={() => setActiveTaskId(t.id)}/>)}
+          {groupBy!=="none" && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-stone-50 border-b border-stone-100">
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${g.color}`}>{g.label}</span>
+              <span className="text-xs text-stone-400">{g.tasks.length}</span>
+            </div>
+          )}
+          {!collapsed.has(g.key) && g.tasks.map(t=><MobileCard key={t.id} task={t} onClick={() => setActiveTaskId(t.id)}/>)}
         </Fragment>
       ))}
     </div>

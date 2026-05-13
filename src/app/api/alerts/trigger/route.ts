@@ -35,6 +35,11 @@ export async function POST(req: NextRequest) {
 
     if (!task) return new NextResponse("Task not found", { status: 200 });
 
+    // Skip notifications for completed or cancelled tasks
+    if (task.status === "DONE" || task.status === "CANCELLED") {
+      return NextResponse.json({ skipped: true, reason: "Task is completed or cancelled" });
+    }
+
     // Determine Notification Content
     let title = `Life OS: ${task.title}`;
     let message = "";

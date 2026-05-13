@@ -12,7 +12,7 @@ const COLUMNS: { id: Status; label: string; dot: string; badge: string }[] = [
   { id: "DONE", label: "Done", dot: "bg-emerald-400", badge: "bg-emerald-50 text-emerald-700" },
 ];
 
-function KanbanCard({ task, index }: { task: Task; index: number }) {
+function KanbanCard({ task, index, isMobile = false }: { task: Task; index: number; isMobile?: boolean }) {
   const { allCategories, setActiveTaskId } = useView();
   const cat = getCatMeta(task.category, allCategories);
   const pri = PRIORITY_META[task.priority];
@@ -24,9 +24,10 @@ function KanbanCard({ task, index }: { task: Task; index: number }) {
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          {...provided.dragHandleProps}
+          // On mobile: don't apply dragHandleProps so the whole card doesn't interfere with scroll
+          {...(!isMobile ? provided.dragHandleProps : {})}
           onClick={() => setActiveTaskId(task.id)}
-          className={`bg-white border rounded-xl p-3.5 transition-all cursor-pointer active:cursor-grabbing select-none ${snapshot.isDragging
+          className={`bg-white border rounded-xl p-3.5 transition-all cursor-pointer select-none ${snapshot.isDragging
               ? "shadow-xl border-orange-300 rotate-1 scale-[1.02]"
               : "border-stone-200 hover:border-stone-300 hover:shadow-sm"
             } ${done ? "opacity-55" : ""}`}
@@ -61,6 +62,7 @@ function KanbanCard({ task, index }: { task: Task; index: number }) {
     </Draggable>
   );
 }
+
 
 export default function KanbanView({ tasks }: { tasks: Task[] }) {
   const { updateTaskStatus, allCategories, addTask } = useView();
@@ -220,7 +222,7 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
                 </div>
               )}
               {taskState.filter(t => t.status === mobileCol.id).map((t, i) => (
-                <KanbanCard key={t.id} task={t} index={i} />
+                <KanbanCard key={t.id} task={t} index={i} isMobile={true} />
               ))}
               {provided.placeholder}
               {taskState.filter(t => t.status === mobileCol.id).length === 0 && !snapshot.isDraggingOver && !quickAddCol && (
