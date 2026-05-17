@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Plus, AlertTriangle, ChevronDown, Check,
   Trash2, Settings, LogOut, SlidersHorizontal, X,
-  RotateCcw, BookmarkPlus,
+  RotateCcw, BookmarkPlus, RefreshCw,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useView } from "@/lib/viewContext";
@@ -215,6 +215,32 @@ function Dashboard() {
   const [mobileViewsOpen, setMobileViewsOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [showAdd, setShowAdd]                 = useState(false);
+  const [refreshing, setRefreshing]           = useState(false);
+
+  const handleHardRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // 1. Unregister all service workers
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+      // 2. Clear all cache storages
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        for (const key of keys) {
+          await caches.delete(key);
+        }
+      }
+      // 3. Perform a full browser reload
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to hard refresh:", err);
+      window.location.reload();
+    }
+  };
 
   const activeView = savedViews.find(v => v.id === activeViewId);
   const pageTitle  = activeView ? `${activeView.emoji} ${activeView.name}` : "Tasks";
@@ -321,6 +347,14 @@ function Dashboard() {
                   {filterCount}
                 </span>
               )}
+            </button>
+            <button
+              onClick={handleHardRefresh}
+              disabled={refreshing}
+              title="Hard Refresh"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-stone-100 text-stone-500 shrink-0 active:scale-95 transition-transform disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-orange-500" : ""}`} />
             </button>
             <Link href="/settings" className="w-9 h-9 flex items-center justify-center rounded-xl bg-stone-100 text-stone-500 shrink-0">
               <Settings className="w-4 h-4"/>
