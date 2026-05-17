@@ -209,7 +209,11 @@ function Dashboard() {
     tasks, filters, updateFilter, activeViewId, savedViews,
     taskCategoryMap, taskStatusMap, loadView, resetFilters,
     activeTaskId, deleteView,
+    taskToDeleteId, setTaskToDeleteId, confirmDeleteTask,
+    viewToDelete, setViewToDelete, confirmDeleteView,
   } = useView();
+
+  const taskToDelete = tasks.find(t => t.id === taskToDeleteId);
 
   const [search, setSearch]                   = useState("");
   const [mobileViewsOpen, setMobileViewsOpen] = useState(false);
@@ -322,7 +326,7 @@ function Dashboard() {
                           </button>
                           {!isPreset && (
                             <button
-                              onClick={e => { e.stopPropagation(); if(confirm(`Delete view "${v.name}"?`)) deleteView(v.id); }}
+                              onClick={e => { e.stopPropagation(); deleteView(v); }}
                               className="p-3 text-stone-300 hover:text-red-500 transition-colors shrink-0"
                             ><Trash2 className="w-3.5 h-3.5"/></button>
                           )}
@@ -456,6 +460,69 @@ function Dashboard() {
 
       {showAdd && <AddTaskModal onClose={() => setShowAdd(false)}/>}
       {activeTaskId && <TaskDetailsModal taskId={activeTaskId}/>}
+
+      {/* ═══════════ CUSTOM DELETE CONFIRMATION MODALS ═══════════ */}
+      {taskToDeleteId && taskToDelete && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm transition-opacity" onClick={() => setTaskToDeleteId(null)}/>
+          <div className="relative bg-white border border-stone-200 rounded-3xl shadow-2xl w-full max-w-sm p-6 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 mb-4 shrink-0 shadow-inner">
+                <Trash2 className="w-5 h-5"/>
+              </div>
+              <h3 className="text-lg font-bold text-stone-900 mb-1">Delete Task</h3>
+              <p className="text-sm text-stone-500 mb-6 leading-relaxed">
+                Are you sure you want to delete <span className="font-semibold text-stone-700">"{taskToDelete.title}"</span>? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => setTaskToDeleteId(null)} 
+                  className="flex-1 py-3 rounded-2xl border border-stone-200 text-sm font-bold text-stone-600 hover:bg-stone-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmDeleteTask} 
+                  className="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-sm font-bold text-white shadow-lg shadow-red-100 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewToDelete && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm transition-opacity" onClick={() => setViewToDelete(null)}/>
+          <div className="relative bg-white border border-stone-200 rounded-3xl shadow-2xl w-full max-w-sm p-6 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 mb-4 shrink-0 shadow-inner">
+                <Trash2 className="w-5 h-5"/>
+              </div>
+              <h3 className="text-lg font-bold text-stone-900 mb-1">Delete Saved View</h3>
+              <p className="text-sm text-stone-500 mb-6 leading-relaxed">
+                Are you sure you want to delete the view <span className="font-semibold text-stone-700">"{viewToDelete.name}"</span>? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => setViewToDelete(null)} 
+                  className="flex-1 py-3 rounded-2xl border border-stone-200 text-sm font-bold text-stone-600 hover:bg-stone-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmDeleteView} 
+                  className="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-sm font-bold text-white shadow-lg shadow-red-100 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

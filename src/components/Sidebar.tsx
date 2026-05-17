@@ -88,9 +88,7 @@ function SavedViewItem({
           <button
             onClick={e => { 
               e.stopPropagation(); 
-              if (confirm(`Are you sure you want to delete the view "${view.name}"?`)) {
-                deleteView(view.id); 
-              }
+              deleteView(view); 
             }}
             className="opacity-0 group-hover:opacity-100 p-1 rounded text-stone-300 hover:text-red-500 hover:bg-red-50 transition-all"
             title="Delete view"

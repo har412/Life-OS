@@ -96,6 +96,8 @@ export default function TaskDetailsModal({ taskId }: { taskId: string }) {
   };
 
   const handleDeleteComment = async (commentId: string) => {
+    if (!window.confirm("Are you sure you want to delete this comment?")) return;
+    
     // Optimistic
     updateTaskDetails(taskId, {
       comments: (task.comments || []).filter((c) => c.id !== commentId),

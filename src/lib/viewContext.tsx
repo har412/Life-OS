@@ -18,7 +18,6 @@ interface ViewContextType {
   savedViews:      SavedView[];
   saveCurrentView: (name: string, emoji: string) => void;
   loadView:        (view: SavedView) => void;
-  deleteView:      (id: string) => void;
   activeViewId:    string | null;
   resetFilters:    () => void;
   defaultViewId:   string | null;
@@ -37,7 +36,16 @@ interface ViewContextType {
   taskCategoryMap:    Record<string, string>; // taskId -> overridden category
   taskStatusMap:      Record<string, string>; // taskId -> overridden status
   updateTaskStatus:   (taskId: string, status: string) => void;
-  deleteTask:         (taskId: string) => Promise<void>;
+  deleteTask:         (taskId: string) => void;
+  taskToDeleteId:     string | null;
+  setTaskToDeleteId:  (id: string | null) => void;
+  confirmDeleteTask:  () => Promise<void>;
+  
+  deleteView:         (view: SavedView) => void;
+  viewToDelete:       SavedView | null;
+  setViewToDelete:    (view: SavedView | null) => void;
+  confirmDeleteView:  () => Promise<void>;
+  
   reorderViews:       (ids: string[]) => Promise<void>;
 
   // Task Details Modal
@@ -87,6 +95,8 @@ export function ViewProvider({
   const [taskStatusMap,   setTaskStatMap] = useState<Record<string,string>>({});
   const [activeTaskId,    setActiveTaskId]= useState<string | null>(null);
   const [taskDetailsMap,  setTaskDetailsMap] = useState<Record<string, Partial<Task>>>({});
+  const [taskToDeleteId,  setTaskToDeleteId] = useState<string | null>(null);
+  const [viewToDelete,    setViewToDelete]   = useState<SavedView | null>(null);
   
   const searchParams = useSearchParams();
   useEffect(() => {
@@ -120,15 +130,26 @@ export function ViewProvider({
     }
   }, []);
 
-  const deleteTaskMethod = useCallback(async (taskId: string) => {
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
+  const deleteTaskMethod = useCallback((taskId: string) => {
+    setTaskToDeleteId(taskId);
+  }, []);
+
+  const confirmDeleteTask = useCallback(async () => {
+    if (!taskToDeleteId) return;
+    const id = taskToDeleteId;
+    setTaskToDeleteId(null);
     
     // Optimistic update
-    setTasks(prev => prev.filter(t => t.id !== taskId));
-    if (activeTaskId === taskId) setActiveTaskId(null);
+    setTasks(prev => prev.filter(t => t.id !== id));
+    if (activeTaskId === id) setActiveTaskId(null);
     
-    await deleteTask(taskId);
-  }, [activeTaskId]);
+    try {
+      await deleteTask(id);
+      toast.success("Task deleted");
+    } catch (err) {
+      toast.error("Failed to delete task");
+    }
+  }, [taskToDeleteId, activeTaskId]);
 
   const updateTaskStatus = useCallback(async (taskId: string, status: string) => {
     // Optimistic update
@@ -236,12 +257,26 @@ export function ViewProvider({
   }, [filters]);
 
   const loadView  = useCallback((view: SavedView) => { setFiltersState({ ...view.filters }); setActiveViewId(view.id); }, []);
-  const deleteView = useCallback(async (id: string) => { 
-    await deleteSavedView(id);
-    setSavedViews(prev => prev.filter(v => v.id !== id)); 
-    if (activeViewId === id) setActiveViewId(null); 
-    if (defaultViewId === id) setDefaultViewId(null);
-  }, [activeViewId, defaultViewId]);
+  
+  const deleteViewMethod = useCallback((view: SavedView) => {
+    setViewToDelete(view);
+  }, []);
+
+  const confirmDeleteView = useCallback(async () => {
+    if (!viewToDelete) return;
+    const id = viewToDelete.id;
+    setViewToDelete(null);
+    
+    try {
+      await deleteSavedView(id);
+      setSavedViews(prev => prev.filter(v => v.id !== id)); 
+      if (activeViewId === id) setActiveViewId(null); 
+      if (defaultViewId === id) setDefaultViewId(null);
+      toast.success("View deleted");
+    } catch (err) {
+      toast.error("Failed to delete view");
+    }
+  }, [viewToDelete, activeViewId, defaultViewId]);
 
   const reorderViews = useCallback(async (ids: string[]) => {
     // Optimistic update
@@ -335,10 +370,12 @@ export function ViewProvider({
   return (
     <ViewContext.Provider value={{
       filters, setFilters, updateFilter,
-      savedViews, saveCurrentView, loadView, deleteView, activeViewId, resetFilters,
+      savedViews, saveCurrentView, loadView, deleteView: deleteViewMethod, activeViewId, resetFilters,
       defaultViewId, setDefaultViewId, loadDefaultView,
       allCategories, addCategory, editCategory, deleteCategory: deleteCategoryMethod, getTaskCount, taskCategoryMap,
       taskStatusMap, updateTaskStatus, deleteTask: deleteTaskMethod,
+      taskToDeleteId, setTaskToDeleteId, confirmDeleteTask,
+      viewToDelete, setViewToDelete, confirmDeleteView,
       activeTaskId, setActiveTaskId, taskDetailsMap, updateTaskDetails,
       tasks, refreshTasks, addTask,
       reorderViews,
