@@ -66,8 +66,9 @@ export async function validateAIKey(provider: string, apiKey: string, baseUrl?: 
       };
     }
 
-    if (provider === "OPENAI" || provider === "OPENROUTER" || provider === "NVIDIA") {
-      const client = new OpenAI({ apiKey, baseURL: baseUrl || undefined });
+    if (provider === "OPENAI" || provider === "OPENROUTER" || provider === "NVIDIA" || provider === "GROQ") {
+      const isGroq = provider === "GROQ";
+      const client = new OpenAI({ apiKey, baseURL: isGroq && !baseUrl ? "https://api.groq.com/openai/v1" : (baseUrl || undefined) });
       const response = await client.models.list();
       return { 
         success: true, 

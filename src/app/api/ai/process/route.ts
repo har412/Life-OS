@@ -31,19 +31,16 @@ export async function POST(req: NextRequest) {
     const apiKey = settings.apiKey;
 
     // 2. STT (Speech-to-Text)
-    if (provider === "OPENAI" || provider === "OPENROUTER" || provider === "NVIDIA") {
-      // Use OpenAI Whisper (most providers like OpenRouter don't support Whisper directly via standard completion)
-      // So we assume the user has an OpenAI key if they want high-quality STT.
-      // If they use NVIDIA/OpenRouter, we might need a fallback or they must provide an OpenAI key.
-      
-      const openai = new OpenAI({ apiKey: apiKey, baseURL: settings.baseUrl || undefined });
+    if (provider === "OPENAI" || provider === "OPENROUTER" || provider === "NVIDIA" || provider === "GROQ") {
+      const isGroq = provider === "GROQ" || settings.baseUrl?.includes("groq");
+      const openai = new OpenAI({ apiKey: apiKey, baseURL: isGroq ? "https://api.groq.com/openai/v1" : (settings.baseUrl || undefined) });
       
       // OpenAI Whisper expects a File object
       const file = new File([audioFile], "audio.webm", { type: audioFile.type });
       
       const transcription = await openai.audio.transcriptions.create({
         file: file,
-        model: "whisper-1",
+        model: isGroq ? "whisper-large-v3" : "whisper-1",
       });
       transcript = transcription.text;
     } else if (provider === "GEMINI") {
@@ -106,10 +103,11 @@ export async function POST(req: NextRequest) {
 
     let extractedTasks = [];
 
-    if (provider === "OPENAI" || provider === "OPENROUTER" || provider === "NVIDIA") {
-      const openai = new OpenAI({ apiKey: apiKey, baseURL: settings.baseUrl || undefined });
+    if (provider === "OPENAI" || provider === "OPENROUTER" || provider === "NVIDIA" || provider === "GROQ") {
+      const isGroq = provider === "GROQ" || settings.baseUrl?.includes("groq");
+      const openai = new OpenAI({ apiKey: apiKey, baseURL: isGroq ? "https://api.groq.com/openai/v1" : (settings.baseUrl || undefined) });
       const response = await openai.chat.completions.create({
-        model: settings.modelName || "gpt-4o",
+        model: isGroq && (!settings.modelName || settings.modelName === "gpt-4o") ? "llama3-70b-8192" : (settings.modelName || "gpt-4o"),
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       });

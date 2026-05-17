@@ -6,6 +6,7 @@ import { Brain, Key, Cpu, Globe, Save, CheckCircle, AlertCircle, RefreshCw, Chev
 
 const PROVIDERS = [
   { id: "OPENAI", label: "OpenAI", defaultUrl: "https://api.openai.com/v1" },
+  { id: "GROQ", label: "Groq", defaultUrl: "https://api.groq.com/openai/v1" },
   { id: "GEMINI", label: "Google Gemini", defaultUrl: "" },
   { id: "CLAUDE", label: "Anthropic Claude", defaultUrl: "" },
   { id: "OPENROUTER", label: "OpenRouter", defaultUrl: "https://openrouter.ai/api/v1" },
