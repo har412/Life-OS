@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Anthropic from "@anthropic-ai/sdk";
+import { BUILT_IN_CATEGORIES } from "@/lib/taskData";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -64,6 +65,18 @@ export async function POST(req: NextRequest) {
       return new NextResponse(`STT not implemented for ${provider} yet.`, { status: 400 });
     }
 
+    // Fetch custom categories from database
+    const customCategories = await prisma.category.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "asc" }
+    });
+
+    const allCats = customCategories.length > 0
+      ? customCategories.map(c => ({ id: c.id, label: c.label }))
+      : BUILT_IN_CATEGORIES.map(c => ({ id: c.id, label: c.label }));
+
+    const categoryPromptList = allCats.map(c => `"${c.label}" (use categoryId: "${c.id}")`).join(", ");
+
     // 3. Task Extraction (LLM)
     const prompt = `
       You are an expert personal assistant. Your job is to analyze a "brain dump" transcript and extract structured tasks for a productivity app.
@@ -74,14 +87,18 @@ export async function POST(req: NextRequest) {
       1. FORMAT: You MUST return ONLY a JSON object with a key named "tasks" containing an array of objects.
       2. TITLE: Create a concise title (e.g., "🛒 Buy Groceries").
       3. DESCRIPTION: Include helpful context if mentioned.
-      4. CATEGORY: Pick one of: [WORK, PERSONAL, HEALTH, HOME, FINANCE]. Default to PERSONAL.
+      4. CATEGORY: If the user explicitly mentions a category (from the list of available categories below), map it and set "categoryId" to that category's ID.
+         If they DO NOT mention any category in their spoken words, set "categoryId" to null (do NOT guess or default to any category).
       5. PRIORITY: Pick one of: [LOW, MEDIUM, HIGH, URGENT]. Use URGENT if they sound stressed.
       6. SCHEDULING: 
          - If a date/time is mentioned, set "dueDate" (YYYY-MM-DD) and "time" (HH:mm).
          - Set "status" to "SCHEDULED" if there is a date, otherwise "BACKLOG".
       7. REMINDERS: If they mention a reminder (e.g. "30 mins before"), set "reminderOffset" to the number of minutes (e.g., 30).
       
-      EXAMPLE OUTPUT:
+      AVAILABLE CATEGORIES:
+      ${categoryPromptList}
+
+      EXAMPLE OUTPUT (with category mentioned):
       {
         "tasks": [
           {
@@ -89,10 +106,26 @@ export async function POST(req: NextRequest) {
             "description": "Call plumber about the leak under the sink",
             "dueDate": "2026-04-26",
             "time": "10:00",
-            "categoryId": "HOME",
+            "categoryId": "${allCats[0]?.id || "WORK"}",
             "priority": "HIGH",
             "status": "SCHEDULED",
             "reminderOffset": 30
+          }
+        ]
+      }
+
+      EXAMPLE OUTPUT (where NO category is mentioned):
+      {
+        "tasks": [
+          {
+            "title": "Buy milk on the way home",
+            "description": "",
+            "dueDate": null,
+            "time": null,
+            "categoryId": null,
+            "priority": "MEDIUM",
+            "status": "BACKLOG",
+            "reminderOffset": null
           }
         ]
       }
