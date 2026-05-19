@@ -15,13 +15,17 @@ const PRI_META_LOCAL: Record<string, { label: string; bg: string; text: string; 
 };
 
 export default function AddTaskModal({ onClose }: { onClose: () => void }) {
-  const { allCategories, addTask } = useView();
+  const { allCategories, addTask, filters } = useView();
 
   const [tab, setTab] = useState<"manual"|"voice">("voice");
   
   // Form State
   const [title,    setTitle]  = useState("");
-  const [catId,    setCatId]  = useState("WORK");
+  const [catId,    setCatId]  = useState(() => {
+    return (filters?.categories && filters.categories.length > 0)
+      ? filters.categories[0]
+      : (allCategories[0]?.id || "WORK");
+  });
   const [pri,      setPri]    = useState<Priority>("MEDIUM");
   const [date,     setDate]   = useState("");
   const [time,     setTime]   = useState("");

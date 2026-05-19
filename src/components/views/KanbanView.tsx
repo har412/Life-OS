@@ -65,7 +65,7 @@ function KanbanCard({ task, index, isMobile = false }: { task: Task; index: numb
 
 
 export default function KanbanView({ tasks }: { tasks: Task[] }) {
-  const { updateTaskStatus, allCategories, addTask } = useView();
+  const { updateTaskStatus, allCategories, addTask, filters } = useView();
   const [taskState, setTaskState] = useState<Task[]>(tasks);
   const [mobileColIndex, setMobileColIndex] = useState(0);
 
@@ -87,10 +87,14 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
     setQuickAddCol(null);
     setQuickAddTitle("");
 
+    const defaultCat = (filters?.categories && filters.categories.length > 0)
+      ? filters.categories[0]
+      : (allCategories[0]?.id || "WORK");
+
     const newTask: Task = {
       id: `t_${Date.now()}`,
       title,
-      category: allCategories[0]?.id || "WORK",
+      category: defaultCat,
       priority: "MEDIUM",
       status: targetStatus,
       dueDate: null,
