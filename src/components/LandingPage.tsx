@@ -9,11 +9,17 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-md border-b border-orange-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center shadow-lg shadow-orange-200">
-              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
-                <path d="M5 12l4 4L19 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+              <div className="w-8 h-8 rounded-lg overflow-hidden shadow-lg shadow-orange-200 flex items-center justify-center">
+                <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8">
+                  <rect width="36" height="36" rx="9" fill="#EA580C"/>
+                  <rect x="9" y="10.5" width="7" height="1.75" rx="0.875" fill="white" fillOpacity="0.35"/>
+                  <path d="M19 11.5L21 13.5L25.5 9" stroke="white" strokeOpacity="0.35" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <rect x="9" y="17" width="7" height="1.75" rx="0.875" fill="white" fillOpacity="0.65"/>
+                  <path d="M19 18L21 20L25.5 15.5" stroke="white" strokeOpacity="0.65" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <rect x="9" y="23.5" width="7" height="1.75" rx="0.875" fill="white"/>
+                  <path d="M19 24.5L21 26.5L25.5 22" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
             <span className="text-xl font-bold tracking-tight text-stone-900">LifeOS</span>
           </div>
           <div className="flex items-center gap-4">
@@ -84,9 +90,15 @@ export default function LandingPage() {
       <footer className="py-12 bg-[#fffcf9]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-8 border-t border-orange-100 pt-12">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 bg-orange-600 rounded-md flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" className="w-3 h-3">
-                <path d="M5 12l4 4L19 7" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <div className="flex justify-center">
+              <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
+                <rect width="36" height="36" rx="9" fill="#EA580C"/>
+                <rect x="9" y="10.5" width="7" height="1.75" rx="0.875" fill="white" fillOpacity="0.35"/>
+                <path d="M19 11.5L21 13.5L25.5 9" stroke="white" strokeOpacity="0.35" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                <rect x="9" y="17" width="7" height="1.75" rx="0.875" fill="white" fillOpacity="0.65"/>
+                <path d="M19 18L21 20L25.5 15.5" stroke="white" strokeOpacity="0.65" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                <rect x="9" y="23.5" width="7" height="1.75" rx="0.875" fill="white"/>
+                <path d="M19 24.5L21 26.5L25.5 22" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <span className="text-sm font-bold text-stone-900">LifeOS</span>
