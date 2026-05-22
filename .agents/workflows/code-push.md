@@ -56,6 +56,7 @@ Check the name of the currently active branch:
      git push -u origin <new-branch-name>
      ```
   9. **Create PR**: Open a Pull Request from the new branch to `master` with a comprehensive Markdown description.
+  10. **Environment Variable Alert**: If the session involved any new or modified environment variables (e.g., in `.env`, `.env.example`, or code definitions), the agent **MUST** explicitly track this change. In the final push report to the user, the agent **MUST** display a highly visible warning listing the specific variables that the user needs to manually add to the production hosting platform. *Never commit active secrets or actual `.env` files to Git.*
 
 ---
 
