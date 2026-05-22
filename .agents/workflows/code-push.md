@@ -1,3 +1,7 @@
+---
+description: Code Push Workflow
+---
+
 # Code Push Workflow
 
 This workflow defines the standard procedure that any AI Agent (or automated scripts) must follow when the user issues a **"code push"** or **"push the code"** request.
