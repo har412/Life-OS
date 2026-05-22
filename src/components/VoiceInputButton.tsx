@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Mic } from "lucide-react";
 import AddTaskModal from "./AddTaskModal";
 
 export default function VoiceInputButton() {
@@ -10,13 +10,14 @@ export default function VoiceInputButton() {
     <>
       <button
         onClick={() => setShowAdd(true)}
-        className="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 w-12 h-12 lg:w-14 lg:h-14 rounded-full flex items-center justify-center z-50 shadow-lg transition-all active:scale-95 bg-orange-500 hover:bg-orange-600 shadow-orange-200"
-        title="Add new task"
+        className="fixed bottom-20 lg:bottom-8 right-5 lg:right-8 z-50 w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 hover:shadow-2xl hover:shadow-orange-500/40 flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200"
+        title="Add task via Voice"
       >
-        <Plus className="w-6 h-6 text-white" strokeWidth={3} />
+        <Mic className="w-6 h-6 lg:w-7 lg:h-7" strokeWidth={2.25} />
       </button>
 
       {showAdd && <AddTaskModal onClose={() => setShowAdd(false)} />}
     </>
   );
 }
+

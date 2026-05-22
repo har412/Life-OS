@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Plus, AlertTriangle, ChevronDown, Check,
   Trash2, Settings, LogOut, SlidersHorizontal, X,
-  RotateCcw, BookmarkPlus, RefreshCw,
+  RotateCcw, BookmarkPlus, RefreshCw, Mic,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useView } from "@/lib/viewContext";
@@ -421,12 +421,7 @@ function Dashboard() {
               <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{pageTitle}</h1>
               <ProgressStrip total={filtered.length} done={done} overdue={overdue}/>
             </div>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-[1.25rem] bg-gradient-to-br from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white text-sm font-bold shadow-xl shadow-orange-100 transition-all active:scale-[0.98]"
-            >
-              <Plus className="w-4 h-4" strokeWidth={3}/>Add Task
-            </button>
+
           </div>
 
           {/* Desktop filter bar */}
@@ -449,13 +444,14 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* ═══════════ MOBILE FAB ═══════════ */}
+      {/* ═══════════ UNIFIED VOICE FAB ═══════════ */}
       <button
         onClick={() => setShowAdd(true)}
-        className="lg:hidden fixed bottom-20 right-5 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-2xl shadow-orange-300/60 flex items-center justify-center active:scale-95 transition-transform"
-        aria-label="Add task"
+        className="fixed bottom-20 lg:bottom-8 right-5 lg:right-8 z-40 w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl shadow-orange-500/30 hover:shadow-2xl hover:shadow-orange-500/40 flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200"
+        title="Add task via Voice"
+        aria-label="Add task via Voice"
       >
-        <Plus className="w-6 h-6" strokeWidth={3}/>
+        <Mic className="w-6 h-6 lg:w-7 lg:h-7" strokeWidth={2.25} />
       </button>
 
       {showAdd && <AddTaskModal onClose={() => setShowAdd(false)}/>}

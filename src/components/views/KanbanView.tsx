@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { ChevronLeft, ChevronRight, Plus, MessageSquare, Image as ImageIcon, Check, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, MessageSquare, Image as ImageIcon, Check, X, GripVertical } from "lucide-react";
 import { getCatMeta, PRIORITY_META, formatDate, type Task, type Status } from "@/lib/taskData";
 import { useView } from "@/lib/viewContext";
 
@@ -24,7 +24,7 @@ function KanbanCard({ task, index, isMobile = false }: { task: Task; index: numb
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          // On mobile: don't apply dragHandleProps so the whole card doesn't interfere with scroll
+          // On mobile: don't apply dragHandleProps to the whole card so it doesn't interfere with scroll
           {...(!isMobile ? provided.dragHandleProps : {})}
           onClick={() => setActiveTaskId(task.id)}
           className={`bg-white border rounded-xl p-3.5 transition-all cursor-pointer select-none ${snapshot.isDragging
@@ -33,6 +33,15 @@ function KanbanCard({ task, index, isMobile = false }: { task: Task; index: numb
             } ${done ? "opacity-55" : ""}`}
         >
           <div className="flex items-start gap-2 mb-2">
+            {isMobile && (
+              <div
+                {...provided.dragHandleProps}
+                className="p-1 -ml-1.5 -mt-0.5 text-stone-300 hover:text-stone-500 cursor-grab active:cursor-grabbing shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <GripVertical className="w-4 h-4" />
+              </div>
+            )}
             <div className={`w-1 rounded-full shrink-0 ${cat.dot}`} style={{ height: 28 }} />
             <p className={`text-sm font-medium leading-snug flex-1 ${done ? "text-stone-400 line-through" : "text-stone-800"}`}>
               {task.title}
@@ -65,7 +74,7 @@ function KanbanCard({ task, index, isMobile = false }: { task: Task; index: numb
 
 
 export default function KanbanView({ tasks }: { tasks: Task[] }) {
-  const { updateTaskStatus, allCategories, addTask, filters } = useView();
+  const { updateTaskStatus, updateTaskPositions, allCategories, addTask, filters } = useView();
   const [taskState, setTaskState] = useState<Task[]>(tasks);
   const [mobileColIndex, setMobileColIndex] = useState(0);
 
@@ -126,10 +135,80 @@ export default function KanbanView({ tasks }: { tasks: Task[] }) {
 
   function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result;
-    if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) return;
-    const newStatus = destination.droppableId as Status;
-    setTaskState(prev => prev.map(t => t.id === draggableId ? { ...t, status: newStatus } : t));
-    updateTaskStatus(draggableId, newStatus);
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+
+    const sourceColId = source.droppableId as Status;
+    const destColId = destination.droppableId as Status;
+
+    // Get all tasks for source and destination columns
+    const sourceTasks = taskState.filter(t => t.status === sourceColId);
+    const destTasks = sourceColId === destColId ? sourceTasks : taskState.filter(t => t.status === destColId);
+
+    const movedTask = taskState.find(t => t.id === draggableId);
+    if (!movedTask) return;
+
+    let updates: { id: string; order: number; status?: string }[] = [];
+
+    if (sourceColId === destColId) {
+      // Same column reordering
+      const reordered = [...sourceTasks];
+      const [removed] = reordered.splice(source.index, 1);
+      reordered.splice(destination.index, 0, removed);
+
+      updates = reordered.map((t, idx) => ({
+        id: t.id,
+        order: idx,
+      }));
+
+      // Optimistic local state update in KanbanView
+      setTaskState(prev => {
+        return prev.map(t => {
+          const u = updates.find(up => up.id === t.id);
+          if (u) return { ...t, order: u.order };
+          return t;
+        });
+      });
+    } else {
+      // Cross column reordering
+      const newSourceTasks = [...sourceTasks];
+      newSourceTasks.splice(source.index, 1);
+
+      const newDestTasks = [...destTasks];
+      const updatedMovedTask = { ...movedTask, status: destColId };
+      newDestTasks.splice(destination.index, 0, updatedMovedTask);
+
+      const sourceUpdates = newSourceTasks.map((t, idx) => ({
+        id: t.id,
+        order: idx,
+      }));
+
+      const destUpdates = newDestTasks.map((t, idx) => ({
+        id: t.id,
+        order: idx,
+        status: t.id === draggableId ? destColId : undefined,
+      }));
+
+      updates = [...sourceUpdates, ...destUpdates];
+
+      // Optimistic local state update in KanbanView
+      setTaskState(prev => {
+        return prev.map(t => {
+          const u = updates.find(up => up.id === t.id);
+          if (u) {
+            return {
+              ...t,
+              order: u.order,
+              status: u.status as Status ?? t.status
+            };
+          }
+          return t;
+        });
+      });
+    }
+
+    // Call viewContext updateTaskPositions to sync to DB and global context
+    updateTaskPositions(updates);
   }
 
   const mobileCol = COLUMNS[mobileColIndex];
