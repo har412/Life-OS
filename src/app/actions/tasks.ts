@@ -157,3 +157,29 @@ export async function deleteTask(id: string) {
     return { error: "Failed to delete task. It might have been already removed." };
   }
 }
+
+export async function reorderTasks(updates: { id: string; order: number; status?: string }[]) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Unauthorized" };
+  const userId = session.user.id;
+
+  try {
+    await prisma.$transaction(
+      updates.map(u => 
+        prisma.task.update({
+          where: { id: u.id, userId },
+          data: { 
+            order: u.order,
+            ...(u.status ? { status: u.status } : {})
+          }
+        })
+      )
+    );
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error reordering tasks:", err);
+    return { error: "Failed to save task positions" };
+  }
+}

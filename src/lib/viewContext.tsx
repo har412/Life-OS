@@ -5,7 +5,7 @@ import {
   type FilterState, type SavedView, type CategoryDef, type Task,
   DEFAULT_FILTERS, PRESET_SAVED_VIEWS, BUILT_IN_CATEGORIES, CUSTOM_CAT_COLORS,
 } from "@/lib/taskData";
-import { createTask, updateTask, deleteTask } from "@/app/actions/tasks";
+import { createTask, updateTask, deleteTask, reorderTasks } from "@/app/actions/tasks";
 import { createCategory, updateCategory, deleteCategory } from "@/app/actions/categories";
 import { createSavedView, deleteSavedView, setDefaultView, reorderSavedViews } from "@/app/actions/views";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ interface ViewContextType {
   taskCategoryMap:    Record<string, string>; // taskId -> overridden category
   taskStatusMap:      Record<string, string>; // taskId -> overridden status
   updateTaskStatus:   (taskId: string, status: string) => void;
+  updateTaskPositions:(updates: { id: string; order: number; status?: string }[]) => Promise<void>;
   deleteTask:         (taskId: string) => void;
   taskToDeleteId:     string | null;
   setTaskToDeleteId:  (id: string | null) => void;
@@ -56,6 +57,17 @@ interface ViewContextType {
 }
 
 const ViewContext = createContext<ViewContextType | null>(null);
+
+const sortTasks = (taskList: Task[]) => {
+  return [...taskList].sort((a, b) => {
+    const orderA = a.order ?? 0;
+    const orderB = b.order ?? 0;
+    if (orderA !== orderB) return orderA - orderB;
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return timeB - timeA;
+  });
+};
 
 export function ViewProvider({ 
   children,
@@ -180,6 +192,33 @@ export function ViewProvider({
       }
     } catch (err) {
       toast.error("Error updating task status");
+    }
+  }, []);
+
+  const updateTaskPositions = useCallback(async (updates: { id: string; order: number; status?: string }[]) => {
+    // Optimistic update
+    setTasks(prev => {
+      const updated = prev.map(t => {
+        const u = updates.find(up => up.id === t.id);
+        if (u) {
+          return {
+            ...t,
+            order: u.order,
+            ...(u.status ? { status: u.status as any } : {})
+          };
+        }
+        return t;
+      });
+      return sortTasks(updated);
+    });
+
+    try {
+      const res = await reorderTasks(updates);
+      if (res.error) {
+        toast.error("Failed to save task positions");
+      }
+    } catch (err) {
+      toast.error("Error saving task positions");
     }
   }, []);
 
@@ -373,7 +412,7 @@ export function ViewProvider({
       savedViews, saveCurrentView, loadView, deleteView: deleteViewMethod, activeViewId, resetFilters,
       defaultViewId, setDefaultViewId, loadDefaultView,
       allCategories, addCategory, editCategory, deleteCategory: deleteCategoryMethod, getTaskCount, taskCategoryMap,
-      taskStatusMap, updateTaskStatus, deleteTask: deleteTaskMethod,
+      taskStatusMap, updateTaskStatus, updateTaskPositions, deleteTask: deleteTaskMethod,
       taskToDeleteId, setTaskToDeleteId, confirmDeleteTask,
       viewToDelete, setViewToDelete, confirmDeleteView,
       activeTaskId, setActiveTaskId, taskDetailsMap, updateTaskDetails,

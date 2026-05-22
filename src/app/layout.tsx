@@ -48,7 +48,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     initialTasks = await prisma.task.findMany({ 
       where: { userId: session.user.id },
       include: { comments: true },
-      orderBy: { createdAt: "desc" }
+      orderBy: [
+        { order: "asc" },
+        { createdAt: "desc" }
+      ]
     });
     
     initialCategories = await prisma.category.findMany({ 
