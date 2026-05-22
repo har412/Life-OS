@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CheckSquare, Bell, Settings } from "lucide-react";
+import { CheckSquare, Bell, Settings, Terminal } from "lucide-react";
 
 const tabs = [
   { href: "/", label: "Tasks", icon: CheckSquare },
+  { href: "/developer", label: "Dev Hub", icon: Terminal },
   { href: "/notifications", label: "Inbox", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

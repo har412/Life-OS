@@ -6,16 +6,25 @@ import { useSession, signOut } from "next-auth/react";
 import dynamic from "next/dynamic";
 import { changePassword } from "@/app/actions/auth";
 
+const Github = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+    <path d="M9 18c-4.51 2-5-2-7-2" />
+  </svg>
+);
+
 const CategoryManager = dynamic(() => import("@/components/CategoryManager"), { ssr: false });
 const PushSubscriptionManager = dynamic(() => import("@/components/PushSubscriptionManager"), { ssr: false });
 const AISettingsManager = dynamic(() => import("@/components/AISettingsManager"), { ssr: false });
+const GitHubConnectPanel = dynamic(() => import("@/components/GitHubConnectPanel"), { ssr: false });
 
-type Tab = "categories" | "notifications" | "account" | "ai" /* | "display" */;
+type Tab = "categories" | "notifications" | "account" | "ai" | "developer" /* | "display" */;
 
 const TABS: { id: Tab; label: string; icon: React.ElementType; desc: string }[] = [
   { id:"categories",    label:"Categories",    icon:Tag,        desc:"Manage task categories, colors, and reassignments" },
   { id:"notifications", label:"Notifications", icon:Bell,       desc:"Alert preferences and reminders" },
   { id:"ai",            label:"AI Intelligence",icon:Brain,     desc:"Configure your custom AI brains and keys" },
+  { id:"developer",     label:"GitHub Hub",     icon:Github,    desc:"Connect your Personal Access Token & selected repos" },
   { id:"account",       label:"Account",       icon:User,       desc:"Profile, email and password" },
 ];
 
@@ -239,6 +248,7 @@ export default function SettingsPage() {
     categories:    <CategoryManager/>,
     notifications: <NotificationsTab/>,
     ai:            <AISettingsManager/>,
+    developer:     <GitHubConnectPanel/>,
     account:       <AccountTab/>,
     // display:       <DisplayTab/>,
   } as Record<Tab, React.ReactNode>;
@@ -269,7 +279,7 @@ export default function SettingsPage() {
           </button>
         </div>
         {/* Mobile tab strip */}
-        <div className="flex overflow-x-auto border-t border-stone-100 px-4 gap-0.5 pb-0">
+        <div className="flex overflow-x-auto border-t border-stone-100 px-4 gap-0.5 pb-0 scrollbar-none">
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors ${

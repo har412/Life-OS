@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { GripVertical, NotebookPen, BarChart3, Settings, Plus, Trash2, Pin, LogOut, Sparkles } from "lucide-react";
+import { GripVertical, NotebookPen, BarChart3, Settings, Plus, Trash2, Pin, LogOut, Sparkles, Terminal } from "lucide-react";
 import { useView } from "@/lib/viewContext";
 import { type SavedView, PRESET_SAVED_VIEWS } from "@/lib/taskData";
 import { useSession, signOut } from "next-auth/react";
@@ -177,6 +177,19 @@ export default function Sidebar() {
             )}
           </Droppable>
         </DragDropContext>
+      </div>
+
+      {/* Developer Hub entry */}
+      <div className="px-3 py-2 border-t border-stone-100">
+        <Link 
+          href="/developer" 
+          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all ${
+            pathname === "/developer" ? "bg-orange-50 text-orange-700" : "text-stone-600 hover:bg-stone-50"
+          }`}
+        >
+          <Terminal className={`w-4 h-4 shrink-0 ${pathname === "/developer" ? "text-orange-500" : "text-stone-400"}`} />
+          <span className="text-sm font-semibold">Developer Hub</span>
+        </Link>
       </div>
 
       {/* User */}
