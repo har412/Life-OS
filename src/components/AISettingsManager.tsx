@@ -83,7 +83,7 @@ export default function AISettingsManager() {
   return (
     <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
+        <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500">
           <Brain className="w-5 h-5" />
         </div>
         <div>
@@ -106,8 +106,8 @@ export default function AISettingsManager() {
                 }}
                 className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
                   provider === p.id
-                    ? "bg-purple-600 text-white border-purple-600 shadow-sm"
-                    : "bg-stone-50 text-stone-500 border-stone-200 hover:bg-white hover:border-purple-200"
+                    ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                    : "bg-stone-50 text-stone-500 border-stone-200 hover:bg-white hover:border-orange-200"
                 }`}
               >
                 {p.label}
@@ -127,7 +127,7 @@ export default function AISettingsManager() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={`Enter your ${provider} API key`}
-              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 pr-32"
+              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 pr-32"
             />
             <button
               onClick={handleValidate}
@@ -155,7 +155,7 @@ export default function AISettingsManager() {
                 <select
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 appearance-none cursor-pointer"
+                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 appearance-none cursor-pointer"
                 >
                   {availableModels.map(m => (
                     <option key={m} value={m}>{m}</option>
@@ -169,7 +169,7 @@ export default function AISettingsManager() {
                 value={modelName}
                 onChange={(e) => setModelName(e.target.value)}
                 placeholder="e.g. gpt-4o or llama-3-70b"
-                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
               />
             )}
           </div>
@@ -182,7 +182,7 @@ export default function AISettingsManager() {
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="Custom API endpoint"
-              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
             />
           </div>
         </div>
@@ -196,7 +196,7 @@ export default function AISettingsManager() {
               </span>
             )}
             {status === "valid" && (
-              <span className="text-xs font-bold text-purple-600 flex items-center gap-1">
+              <span className="text-xs font-bold text-orange-500 flex items-center gap-1">
                 <CheckCircle className="w-3.5 h-3.5" /> Key Verified & Models Fetched
               </span>
             )}
@@ -209,7 +209,7 @@ export default function AISettingsManager() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold shadow-lg shadow-purple-100 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold shadow-lg shadow-orange-100 transition-all disabled:opacity-50"
           >
             {saving ? "Saving..." : <><Save className="w-4 h-4" /> Save AI Config</>}
           </button>

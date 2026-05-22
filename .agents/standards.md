@@ -47,8 +47,13 @@ We handle personal tasks, notifications, and user data. Security must be integra
 Life-OS is a premium productivity platform. Ensure design excellence in every layout:
 - **Optimistic UI Updates:** Interactive elements (Kanban boards, delete actions, state toggles) should use React states optimistically to feel instantaneous. Provide elegant rollback/error notifications (`sonner` toasts) if the server request fails.
 - **Mobile Usability & Scroll Integrity:** Drag-and-drop systems must not interfere with native vertical scrolling on touch screens. Always restrict drag handles on mobile viewports to custom grab handles (e.g. `GripVertical` icons) instead of the entire card wrapper.
-- **Harmonious Aesthetics:** Use curated gradients (e.g., `bg-gradient-to-br from-orange-500 to-orange-600`), Outfit/Inter typography, and subtle box-shadows. Avoid standard browser colors.
+- **Harmonious Aesthetics & Color Scheme (Sober Orange):** The primary unified color scheme for Life-OS buttons, active states, focus highlights, header tags, and layout brand items is **Sober Orange** (e.g., `bg-orange-500`, `hover:bg-orange-600`, focus rings `focus:ring-orange-400`, subtle backdrops `bg-orange-50` or `bg-orange-100`, and shadow highlights `shadow-orange-100`). Do not introduce other colors (like purple, blue, or green) for settings, save buttons, forms, or general UI actions. Other colors must only be used when explicitly displaying dynamic custom task categories/labels. Use premium Outfit/Inter typography and subtle box-shadows. Avoid standard browser colors.
 - **Layout Adaptability:** Always test designs on both small mobile layouts (320px–480px) and wide desktop monitors. Maintain screen boundaries without overflow.
+
+### A. Advanced Component & Selector UX Rules:
+- **Searchable Dropdowns (Autocomplete):** Wherever a drop-down or selector handles dynamic options that can scale (e.g., 5+ items), you MUST implement an **autocomplete/searchable dropdown** allowing inline searching, rather than using generic static `<select>` elements.
+- **Bulk Actions in Filters:** If any filter or checkbox menu contains more than 4 options, always include immediate control options for **"Select All"** and **"Clear All"** to eliminate user clicking fatigue.
+- **Responsive Navigation for Sidebars:** On mobile viewports, do not render full-length sidebar navigation lists that push active content below the fold. Instead, consolidate sidebar controls into clean top-sticky scrolling pill tracks or optimized dropdown selectors at the very top of the active pane.
 
 ---
 
