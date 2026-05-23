@@ -117,10 +117,12 @@ export function ViewProvider({
   // 1. Sync from URL on mount/update
   useEffect(() => {
     const tid = searchParams?.get("taskId");
-    if (tid && tid !== activeTaskId) {
-      setActiveTaskId(tid);
+    if (tid) {
+      setActiveTaskId(prev => prev === tid ? prev : tid);
+    } else {
+      setActiveTaskId(prev => prev === null ? prev : null);
     }
-  }, [searchParams, activeTaskId]);
+  }, [searchParams]);
 
   // 2. Sync back to URL when activeTaskId state changes (to prevent notification-click lock/freeze)
   useEffect(() => {
