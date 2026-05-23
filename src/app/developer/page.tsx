@@ -1480,49 +1480,57 @@ export default function DeveloperHubPage() {
                       {/* Shell Output Console with Custom Bounded Scrolling & Touch Optimization */}
                       {/* Wrapper for relative positioning of the floating Voice FAB */}
                       <div className="relative flex-1 overflow-hidden flex flex-col">
-                        {/* ── Floating Voice FAB ── top-right corner of terminal area */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isRecording) {
-                              stopRecording();
-                            } else {
-                              startRecording();
-                            }
-                          }}
-                          className={`absolute top-3 right-3 z-20 flex items-center gap-2 px-3 py-2 rounded-2xl font-bold text-xs shadow-2xl transition-all duration-200 cursor-pointer select-none ${
-                            isRecording
-                              ? "bg-orange-500 text-white shadow-orange-500/50 scale-105"
-                              : "bg-stone-800 border border-stone-700 text-stone-300 hover:bg-stone-700 hover:border-orange-500/40 hover:text-orange-400"
-                          }`}
-                          title={isRecording ? "Stop recording" : "Voice command"}
-                        >
-                          {/* Ripple ring when recording */}
+                        {/* ── Popped-out Neon Voice FAB ── Top-Right Corner */}
+                        <div className="absolute top-3.5 right-3.5 z-30 flex items-center gap-2">
                           {isRecording && (
-                            <span className="absolute inset-0 rounded-2xl ring-2 ring-orange-400 animate-ping opacity-60 pointer-events-none" />
+                            <div className="flex items-center gap-3 px-3 py-2 bg-stone-950/95 border border-orange-500/40 rounded-2xl shadow-[0_0_20px_rgba(249,115,22,0.15)] animate-in fade-in slide-in-from-right-3 duration-300 backdrop-blur-md">
+                              <div className="flex h-2.5 w-2.5 relative shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                              </div>
+                              <div className="flex flex-col min-w-[120px] max-w-[180px]">
+                                <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest leading-none">Voice Mode Active</span>
+                                <span className="text-[10px] text-stone-300 font-medium truncate mt-0.5 animate-pulse">Recording your voice...</span>
+                              </div>
+                              <div className="flex items-end gap-[2px] h-3.5 px-1 bg-stone-900/60 rounded-md py-0.5 border border-stone-800">
+                                {[0.4, 0.9, 0.6, 1.0, 0.5].map((h, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="w-[2px] bg-orange-500 rounded-full animate-bounce"
+                                    style={{
+                                      height: `${h * 100}%`,
+                                      animationDelay: `${idx * 90}ms`,
+                                      animationDuration: "0.55s",
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
                           )}
 
-                          {/* Mic icon or animated waveform bars */}
-                          {isRecording ? (
-                            <span className="flex items-end gap-[3px] h-4">
-                              {[0.6, 1, 0.7, 1, 0.5].map((h, i) => (
-                                <span
-                                  key={i}
-                                  className="w-[3px] bg-white rounded-full animate-bounce"
-                                  style={{
-                                    height: `${h * 100}%`,
-                                    animationDelay: `${i * 80}ms`,
-                                    animationDuration: "0.6s",
-                                  }}
-                                />
-                              ))}
-                            </span>
-                          ) : (
-                            <Mic className="w-4 h-4" />
-                          )}
-
-                          <span>{isRecording ? "Recording…" : "Voice"}</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isRecording) {
+                                stopRecording();
+                              } else {
+                                startRecording();
+                              }
+                            }}
+                            className={`w-12 h-12 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 cursor-pointer select-none active:scale-95 ${
+                              isRecording
+                                ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/50 scale-105 border-2 border-red-400 animate-pulse"
+                                : "bg-gradient-to-br from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white shadow-orange-500/30 hover:scale-105 border border-orange-400"
+                            }`}
+                            title={isRecording ? "Stop and Submit Voice Command" : "Start Voice Command to Shell"}
+                          >
+                            {isRecording ? (
+                              <span className="w-3 h-3 bg-white rounded-[2px] animate-pulse" />
+                            ) : (
+                              <Mic className="w-5 h-5 animate-pulse" />
+                            )}
+                          </button>
+                        </div>
 
                         <div
                           ref={terminalScrollRef}
@@ -1601,13 +1609,12 @@ export default function DeveloperHubPage() {
                       <div className="px-3 py-1.5 bg-stone-950 border-t border-stone-850 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-hide">
                         <span className="text-[9px] font-bold text-stone-500 uppercase tracking-wider shrink-0 mr-1">Quick:</span>
                         {[
-                          { label: "Continue", cmd: "continue" },
-                          { label: "Agy CLI", cmd: "agy " },
-                          { label: "Status", cmd: "git status" },
-                          { label: "Run Dev", cmd: "npm run dev" },
-                          { label: "List Files", cmd: "dir" },
-                          { label: "Git Log", cmd: "git log -n 5" },
-                          { label: "Node Ver", cmd: "node -v" },
+                          { label: "agy -c (Resume)", cmd: "agy -c" },
+                          { label: "continue", cmd: "continue" },
+                          { label: "agy ", cmd: "agy " },
+                          { label: "git status", cmd: "git status" },
+                          { label: "npm run dev", cmd: "npm run dev" },
+                          { label: "git log -n 5", cmd: "git log -n 5" },
                           { label: "Clear Input", cmd: "" }
                         ].map((item, idx) => (
                           <button
@@ -1616,10 +1623,13 @@ export default function DeveloperHubPage() {
                             onClick={() => {
                               if (item.cmd === "") {
                                 setSshPrompt("");
-                              } else {
+                                inputRef.current?.focus();
+                              } else if (item.cmd.endsWith(" ")) {
                                 setSshPrompt(item.cmd);
+                                inputRef.current?.focus();
+                              } else {
+                                handleTerminalSubmit(item.cmd);
                               }
-                              inputRef.current?.focus();
                             }}
                             className="px-2.5 py-0.5 rounded bg-stone-900 border border-stone-800 hover:border-orange-500/40 hover:bg-stone-850 active:bg-stone-800 text-[10px] text-stone-300 hover:text-orange-400 transition-all font-mono whitespace-nowrap cursor-pointer shrink-0"
                           >
