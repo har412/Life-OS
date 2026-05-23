@@ -31,6 +31,8 @@ import {
   Play,
   Trash2,
   Power,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { toast } from "sonner";
 import GitHubConnectPanel from "@/components/GitHubConnectPanel";
@@ -447,6 +449,8 @@ export default function DeveloperHubPage() {
 
   // SSH Agent Hub State
   const [explorerTab, setExplorerTab] = useState<"issues" | "ssh-agent">("issues");
+  const [isTerminalMaximized, setIsTerminalMaximized] = useState(false);
+  const [terminalFontSize, setTerminalFontSize] = useState<"sm" | "base" | "lg">("sm");
   const [activeSSHIssue, setActiveSSHIssue] = useState<Issue | null>(null);
   const [sshLogs, setSshLogs] = useState<{ type: "stdout" | "stderr" | "system"; text: string; timestamp: string }[]>([]);
   const [sshPrompt, setSshPrompt] = useState("");
@@ -455,11 +459,24 @@ export default function DeveloperHubPage() {
   const [projectPaths, setProjectPaths] = useState<string[]>([]);
   const [selectedProjectPath, setSelectedProjectPath] = useState<string | null>(null);
   const terminalScrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [artifactsList, setArtifactsList] = useState<any[]>([]);
   const [selectedArtifact, setSelectedArtifact] = useState<{ name: string; fullPath: string; content: string } | null>(null);
   const [isReviewingOpen, setIsReviewingOpen] = useState(false);
   const [isArtifactsLoading, setIsArtifactsLoading] = useState(false);
   const toastedArtifacts = useRef<Set<string>>(new Set());
+
+  // Lock body scroll when terminal is maximized on mobile to prevent underlying page bounce/scroll
+  useEffect(() => {
+    if (isTerminalMaximized && explorerTab === "ssh-agent") {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isTerminalMaximized, explorerTab]);
 
   // Scroll to bottom of terminal only if user is near bottom or ran a command
   useEffect(() => {
@@ -1139,40 +1156,48 @@ export default function DeveloperHubPage() {
             </div>
 
             {/* Right Issues Explorer Panel with Bounded Mobile Heights */}
-            <div className="flex-1 bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[calc(100vh-220px)] lg:h-[calc(100vh-180px)] min-h-[520px] lg:min-h-[750px]">
+            <div className={`transition-all duration-300 flex flex-col overflow-hidden ${
+              isTerminalMaximized && explorerTab === "ssh-agent"
+                ? "fixed inset-0 z-50 rounded-none w-full h-[100dvh] min-h-[100dvh] border-none bg-stone-900"
+                : "flex-1 bg-white border border-stone-200 rounded-2xl shadow-sm h-[calc(100vh-220px)] lg:h-[calc(100vh-180px)] min-h-[520px] lg:min-h-[750px]"
+            }`}>
 
               {/* Premium Tab Selector for GitHub Issues vs Interactive SSH Agent Hub */}
-              <div className="flex bg-stone-50/70 p-1 gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setExplorerTab("issues")}
-                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "issues"
-                      ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
-                      : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
-                    }`}
-                >
-                  <FolderGit2 className="w-4 h-4" /> GitHub Issues
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setExplorerTab("ssh-agent")}
-                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "ssh-agent"
-                      ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
-                      : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
-                    }`}
-                >
-                  <Terminal className="w-4 h-4" /> Interactive Agent Hub
-                  {activeSSHIssue && (
-                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0" />
-                  )}
-                </button>
-              </div>
+              {!(isTerminalMaximized && explorerTab === "ssh-agent") && (
+                <div className="flex bg-stone-50/70 p-1 gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setExplorerTab("issues")}
+                    className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "issues"
+                        ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
+                        : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
+                      }`}
+                  >
+                    <FolderGit2 className="w-4 h-4" /> GitHub Issues
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExplorerTab("ssh-agent")}
+                    className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "ssh-agent"
+                        ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
+                        : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
+                      }`}
+                  >
+                    <Terminal className="w-4 h-4" /> Interactive Agent Hub
+                    {activeSSHIssue && (
+                      <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0" />
+                    )}
+                  </button>
+                </div>
+              )}
 
               {explorerTab === "ssh-agent" ? (
                 <div className="flex-1 flex flex-col overflow-hidden bg-stone-900 text-stone-100 font-sans">
 
                   {/* Active Context Banner with Session Controls & Artifact Drawer Access */}
-                  <div className="p-3 bg-stone-900 border-b border-stone-800 flex items-center justify-between gap-3 text-xs shrink-0">
+                  <div className={`p-3 bg-stone-900 border-b border-stone-800 flex items-center justify-between gap-3 text-xs shrink-0 ${
+                    isTerminalMaximized ? "pt-[calc(12px+env(safe-area-inset-top))]" : ""
+                  }`}>
                     <div className="flex items-center gap-2 min-w-0">
                       {activeSSHIssue ? (
                         <div className="flex items-center gap-1.5 text-orange-400 font-semibold truncate">
@@ -1229,6 +1254,40 @@ export default function DeveloperHubPage() {
                           <Power className="w-3 h-3 animate-spin duration-1000" /> Kill Shell
                         </button>
                       )}
+
+                      {/* Font Size Selector */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTerminalFontSize(prev => prev === "sm" ? "base" : prev === "base" ? "lg" : "sm");
+                        }}
+                        className="px-2 py-1 rounded bg-stone-800 hover:bg-stone-700 hover:text-white border border-stone-750 text-stone-300 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                        title="Adjust Text Size"
+                      >
+                        <span className="font-mono text-orange-400 font-extrabold text-[11px]">A</span>
+                        <span className="uppercase text-[9px] text-stone-400 font-bold">
+                          {terminalFontSize}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsTerminalMaximized(!isTerminalMaximized)}
+                        className="px-2 py-1 rounded bg-stone-800 hover:bg-stone-700 hover:text-white border border-stone-750 text-stone-300 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                        title={isTerminalMaximized ? "Exit Fullscreen" : "Maximize Console"}
+                      >
+                        {isTerminalMaximized ? (
+                          <>
+                            <Minimize2 className="w-3 h-3 text-orange-400" />
+                            <span>Minimize</span>
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="w-3 h-3 text-orange-400" />
+                            <span>Maximize</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
 
@@ -1285,7 +1344,13 @@ export default function DeveloperHubPage() {
                       {/* Shell Output Console with Custom Bounded Scrolling & Touch Optimization */}
                       <div
                         ref={terminalScrollRef}
-                        className="flex-1 p-3.5 sm:p-4 overflow-y-auto font-mono text-[10px] sm:text-[11px] leading-relaxed space-y-2.5 bg-stone-950 scrollbar-thin scrollbar-thumb-stone-800 scrollbar-track-stone-950 overscroll-contain"
+                        className={`flex-1 p-3.5 sm:p-4 overflow-y-auto font-mono leading-relaxed space-y-2.5 bg-stone-950 scrollbar-thin scrollbar-thumb-stone-800 scrollbar-track-stone-950 overscroll-contain transition-all duration-150 ${
+                          terminalFontSize === "sm"
+                            ? "text-[10px] sm:text-[11px]"
+                            : terminalFontSize === "base"
+                            ? "text-[12px] sm:text-[13px]"
+                            : "text-[14px] sm:text-[15px]"
+                        }`}
                       >
                         {sshLogs.length === 0 ? (
                           <div className="h-full flex flex-col items-center justify-center text-center text-stone-500 gap-2 py-12 my-auto">
@@ -1348,8 +1413,40 @@ export default function DeveloperHubPage() {
                         );
                       })()}
 
+                      {/* Horizontally Scrollable Quick-Command Shortcuts Shelf */}
+                      <div className="px-3 py-1.5 bg-stone-950 border-t border-stone-850 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-hide">
+                        <span className="text-[9px] font-bold text-stone-500 uppercase tracking-wider shrink-0 mr-1">Quick:</span>
+                        {[
+                          { label: "Agy CLI", cmd: "agy " },
+                          { label: "Status", cmd: "git status" },
+                          { label: "Run Dev", cmd: "npm run dev" },
+                          { label: "List Files", cmd: "dir" },
+                          { label: "Git Log", cmd: "git log -n 5" },
+                          { label: "Node Ver", cmd: "node -v" },
+                          { label: "Clear Input", cmd: "" }
+                        ].map((item, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              if (item.cmd === "") {
+                                setSshPrompt("");
+                              } else {
+                                setSshPrompt(item.cmd);
+                              }
+                              inputRef.current?.focus();
+                            }}
+                            className="px-2.5 py-0.5 rounded bg-stone-900 border border-stone-800 hover:border-orange-500/40 hover:bg-stone-850 active:bg-stone-800 text-[10px] text-stone-300 hover:text-orange-400 transition-all font-mono whitespace-nowrap cursor-pointer shrink-0"
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+
                       {/* Console Action Bar - Fixed Height Pinned at Bottom */}
-                      <div className="p-3 bg-stone-900 border-t border-stone-800 flex items-center gap-2 shrink-0">
+                      <div className={`p-3 bg-stone-900 border-t border-stone-800 flex items-center gap-2 shrink-0 ${
+                        isTerminalMaximized ? "pb-[calc(12px+env(safe-area-inset-bottom))]" : ""
+                      }`}>
                         {/* Terminal heartbeat status */}
                         {sshRunning && (
                           <div className="flex items-center gap-1.5 shrink-0 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1.5 rounded-lg text-emerald-400 text-[10px] font-bold">
@@ -1360,6 +1457,7 @@ export default function DeveloperHubPage() {
 
                         <div className="relative flex-1">
                           <input
+                            ref={inputRef}
                             type="text"
                             value={sshPrompt}
                             onChange={(e) => setSshPrompt(e.target.value)}
