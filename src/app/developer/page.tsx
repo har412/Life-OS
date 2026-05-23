@@ -234,7 +234,37 @@ function cleanAndFormatText(text: string) {
       {lines.map((line, lineIdx) => {
         // Clean leftover control characters
         const cleanLine = line.replace(/[\r\b]/g, "").trimEnd();
-        if (!cleanLine && lineIdx === lines.length - 1) return null; // Skip trailing empty line
+        
+        // Skip trailing empty lines
+        if (!cleanLine && lineIdx === lines.length - 1) return null;
+
+        const trimmed = cleanLine.trim();
+
+        // Console Noise Filtering: Filter out interactive agent prompt and selection boilerplates
+        const isNoise = [
+          /esc to cancel/i,
+          /Gemini\s+(?:3\.5|1\.5|1\.0)?\s*(?:Flash|Pro)?\s*\(Medium\)/i,
+          /Gemini\s+(?:3\.5|1\.5|1\.0)?\s*(?:Flash|Pro)?/i,
+          /↑\/↓\s+Navigate/i,
+          /Navigate\s+·\s+tab\s+Amend/i,
+          /e\s+edit\s+command/i,
+          /Yes,\s+and\s+always\s+allow/i,
+          /Persist\s+to\s+settings\.json/i,
+          /^\d+\.\s*Yes/i,
+          /^\d+\.\s*No/i,
+          /^Yes$/i,
+          /^No$/i,
+          /^\?.*?Yes/i,
+          /^\?.*?No/i
+        ].some(regex => regex.test(trimmed));
+
+        if (isNoise) return null;
+
+        // Compress excessive consecutive empty lines inside terminal scroll logs
+        if (!cleanLine) {
+          const prevLine = lineIdx > 0 ? lines[lineIdx - 1].replace(/[\r\b]/g, "").trimEnd() : null;
+          if (!prevLine) return null;
+        }
 
         const parts = cleanLine.split(urlRegex);
 
