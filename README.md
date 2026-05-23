@@ -68,12 +68,40 @@ An engineering command center designed to monitor local services and synchronize
 * **Workspace Artifact Sandbox Reader**: Read and verify generated repository files securely before committing or executing terminal instructions.
 * **GitHub Issues Sync**: Pull down repository issues in real-time, wrap titles perfectly (avoiding trailing dot-dot-dots), and bind them directly as active task context.
 
-### 🔒 4. Access Guard & SMTP Authentication
+### 🤖 4. Local Antigravity CLI & SSH Code Pilot Flow
+The ultimate autonomous developer capability. Link your local machine directly to the Life-OS cloud dashboard using the **Antigravity CLI (`agy`)** to resolve repository tasks hands-free.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as Developer (User)
+    participant App as Life-OS Web App
+    participant SSH as Secure SSH Tunnel (agy)
+    participant CLI as Antigravity CLI (Local Laptop)
+    participant DB as Postgres Database
+    participant GH as GitHub Repository
+
+    Dev->>CLI: Starts agent: "agy --ssh-port 2222"
+    CLI->>SSH: Establishes secure reverse SSH tunnel
+    Dev->>App: Navigates to Developer Hub & connects SSH session
+    App->>DB: Pulls active GitHub Issues & wraps titles
+    Dev->>App: Speaks to AI: "Solve issue #47"
+    App->>SSH: Routes command: "Investigate and resolve issue 47"
+    SSH->>CLI: Local Antigravity CLI intercepts command
+    CLI->>CLI: Scans workspace files & identifies bug location
+    CLI->>CLI: Writes high-fidelity code fix locally
+    CLI->>CLI: Runs local compilation check & tests ("npx tsc --noEmit")
+    CLI->>GH: Pushes compliant branch & submits high-fidelity Pull Request
+    GH-->>App: Triggers webhook or status update
+    App->>Dev: Speaks back: "Issue #47 successfully resolved and PR #48 submitted!"
+```
+
+### 🔒 5. Access Guard & SMTP Authentication
 * **SMTP Reset password loop**: High-security forgot/reset password flow powered by Resend SMTP configurations.
 * **Local Password Upgrades**: Allows users signed in via Google OAuth to securely establish custom local passwords without breaking session tokens.
 * **Multi-tenant Isolation locks**: Session-validated Next.js Server Actions securing all IDOR locks to enforce absolute database isolation.
 
-### 📱 5. High-Performance Mobile PWA
+### 📱 6. High-Performance Mobile PWA
 * **Add to Home Screen**: PWA ready with registered service workers and offline database assets.
 * **Hard Refresh Action**: dedicated reload button in the navigation header that automatically clears registered service workers and web cache to resolve local cache locks instantly.
 
@@ -109,14 +137,10 @@ An engineering command center designed to monitor local services and synchronize
    npm install
    ```
 
-3. **Configure environment variables (`.env`):**
-   ```env
-   DATABASE_URL="postgresql://username:password@localhost:5432/lifeos"
-   AUTH_SECRET="your-32-character-nextauth-secret"
-   
-   # For Alert Scheduler
-   QSTASH_TOKEN="your-upstash-qstash-token"
-   QSTASH_CURRENT_SIGNING_KEY="your-qstash-signing-key"
+3. **Configure environment variables:**
+   Copy the example environment template file and fill in your keys:
+   ```bash
+   cp .env.example .env
    ```
 
 4. **Synchronize database models:**
