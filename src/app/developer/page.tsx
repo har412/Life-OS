@@ -8,7 +8,7 @@ import {
   listIssues,
   createIssue,
 } from "@/app/actions/github";
-import { getSSHCredential } from "@/app/actions/ssh";
+import { getSSHCredential, readWorkspaceFile, listWorkspaceArtifacts } from "@/app/actions/ssh";
 import {
   Terminal,
   FolderGit2,
@@ -30,6 +30,7 @@ import {
   Loader2,
   Play,
   Trash2,
+  Power,
 } from "lucide-react";
 import { toast } from "sonner";
 import GitHubConnectPanel from "@/components/GitHubConnectPanel";
@@ -454,6 +455,11 @@ export default function DeveloperHubPage() {
   const [projectPaths, setProjectPaths] = useState<string[]>([]);
   const [selectedProjectPath, setSelectedProjectPath] = useState<string | null>(null);
   const terminalScrollRef = useRef<HTMLDivElement>(null);
+  const [artifactsList, setArtifactsList] = useState<any[]>([]);
+  const [selectedArtifact, setSelectedArtifact] = useState<{ name: string; fullPath: string; content: string } | null>(null);
+  const [isReviewingOpen, setIsReviewingOpen] = useState(false);
+  const [isArtifactsLoading, setIsArtifactsLoading] = useState(false);
+  const toastedArtifacts = useRef<Set<string>>(new Set());
 
   // Scroll to bottom of terminal only if user is near bottom or ran a command
   useEffect(() => {
@@ -628,6 +634,193 @@ export default function DeveloperHubPage() {
       ]);
     }
   };
+
+  const reconnectSession = async () => {
+    try {
+      const response = await fetch("/api/developer/ssh-run", {
+        method: "GET",
+      });
+
+      if (!response.ok) return;
+
+      const contentType = response.headers.get("Content-Type") || "";
+      if (!contentType.includes("application/x-ndjson")) {
+        setSshRunning(false);
+        return;
+      }
+
+      if (!response.body) return;
+
+      setSshRunning(true);
+      setSshLogs([]); // Clear local logs to display buffer history
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      const appendLog = (logObj: {
+        type: "stdout" | "stderr" | "system";
+        text: string;
+        timestamp?: string;
+        reconnected?: boolean;
+        projectPath?: string;
+        prompt?: string;
+      }) => {
+        if (logObj.reconnected) {
+          if (logObj.projectPath) {
+            setSelectedProjectPath(logObj.projectPath);
+          }
+          return;
+        }
+
+        setSshLogs((prev) => {
+          if (prev.length > 0 && prev[prev.length - 1].type === logObj.type && logObj.type !== "system") {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              text: updated[updated.length - 1].text + logObj.text,
+            };
+            return updated;
+          }
+          return [...prev, { ...logObj, timestamp: logObj.timestamp || new Date().toISOString() }];
+        });
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const logObj = JSON.parse(line);
+            appendLog(logObj);
+          } catch (e) {
+            appendLog({ type: "stdout", text: line });
+          }
+        }
+      }
+
+      if (buffer.trim()) {
+        try {
+          const logObj = JSON.parse(buffer);
+          appendLog(logObj);
+        } catch (e) {
+          appendLog({ type: "stdout", text: buffer });
+        }
+      }
+    } catch (err: any) {
+      console.error("Failed to reconnect terminal session:", err);
+    } finally {
+      setSshRunning(false);
+    }
+  };
+
+  const terminateSession = async () => {
+    try {
+      const response = await fetch("/api/developer/ssh-run", {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setSshLogs([]);
+        setSshRunning(false);
+        toast.success("Terminal session terminated.");
+      } else {
+        toast.error("Failed to terminate session.");
+      }
+    } catch (err: any) {
+      toast.error("Failed to terminate session: " + err.message);
+    }
+  };
+
+  const loadArtifacts = async () => {
+    if (!selectedProjectPath) return;
+    setIsArtifactsLoading(true);
+    try {
+      const res = await listWorkspaceArtifacts(selectedProjectPath);
+      if (res.success && res.artifacts) {
+        setArtifactsList(res.artifacts);
+      }
+    } catch (err) {
+      console.error("Failed to load workspace artifacts:", err);
+    } finally {
+      setIsArtifactsLoading(false);
+    }
+  };
+
+  const handleSelectArtifact = async (artifact: any) => {
+    try {
+      setSelectedArtifact(null);
+      setIsReviewingOpen(true);
+      const res = await readWorkspaceFile(artifact.fullPath);
+      if (res.success && res.content) {
+        setSelectedArtifact({
+          name: artifact.name,
+          fullPath: artifact.fullPath,
+          content: res.content,
+        });
+      } else {
+        toast.error("Failed to read artifact content: " + res.error);
+      }
+    } catch (err: any) {
+      toast.error("Error reading artifact: " + err.message);
+    }
+  };
+
+  const handleApproveArtifact = () => {
+    sendSSHInput("1");
+    setIsReviewingOpen(false);
+    setSelectedArtifact(null);
+    toast.success(`Artifact "${selectedArtifact?.name}" approved! Resuming execution...`);
+  };
+
+  useEffect(() => {
+    if (selectedProjectPath) {
+      loadArtifacts();
+    }
+  }, [selectedProjectPath, sshRunning]);
+
+  useEffect(() => {
+    if (explorerTab === "ssh-agent" && hasSSHCredential) {
+      reconnectSession();
+    }
+  }, [explorerTab, hasSSHCredential]);
+
+  // Monitor logs to automatically pop up toasts for artifacts or permissions
+  useEffect(() => {
+    if (sshLogs.length === 0) return;
+    const lastLog = sshLogs[sshLogs.length - 1];
+    if (lastLog.type === "stdout" || lastLog.type === "system") {
+      const match = lastLog.text.match(/\[ARTIFACT:\s*([^\]\s]+)\]/i);
+      if (match && match[1]) {
+        const artifactName = match[1];
+        if (!toastedArtifacts.current.has(artifactName)) {
+          toastedArtifacts.current.add(artifactName);
+          loadArtifacts().then(() => {
+            toast.info(`✨ New Artifact Available: ${artifactName}`, {
+              action: {
+                label: "Review",
+                onClick: () => {
+                  const found = artifactsList.find(a => a.name.toLowerCase().includes(artifactName.toLowerCase()));
+                  if (found) {
+                    handleSelectArtifact(found);
+                  } else {
+                    const tempArtifact = { name: artifactName, fullPath: `${selectedProjectPath}\\artifacts\\${artifactName}` };
+                    handleSelectArtifact(tempArtifact);
+                  }
+                }
+              },
+              duration: 12000,
+            });
+          });
+        }
+      }
+    }
+  }, [sshLogs, artifactsList]);
 
 
   useEffect(() => {
@@ -978,36 +1171,65 @@ export default function DeveloperHubPage() {
               {explorerTab === "ssh-agent" ? (
                 <div className="flex-1 flex flex-col overflow-hidden bg-stone-900 text-stone-100 font-sans">
 
-                  {/* Active Context Banner */}
-                  <div className="p-3 bg-stone-850 border-b border-stone-800 flex items-center justify-between gap-3 text-xs shrink-0">
-                    {activeSSHIssue ? (
-                      <>
-                        <div className="flex items-center gap-2 text-orange-400 font-semibold min-w-0">
+                  {/* Active Context Banner with Session Controls & Artifact Drawer Access */}
+                  <div className="p-3 bg-stone-900 border-b border-stone-800 flex items-center justify-between gap-3 text-xs shrink-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {activeSSHIssue ? (
+                        <div className="flex items-center gap-1.5 text-orange-400 font-semibold truncate">
                           <span className="flex h-2 w-2 relative shrink-0">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
                           </span>
                           <span className="truncate text-[11px]">
-                            Context: <span className="font-extrabold text-stone-100">Issue #{activeSSHIssue.number}</span> — {activeSSHIssue.title}
+                            Context: <span className="font-extrabold text-stone-100">Issue #{activeSSHIssue.number}</span>
                           </span>
                         </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-stone-400 font-semibold">
+                          <span className="w-2 h-2 rounded-full bg-stone-600" />
+                          <span className="text-[11px] truncate">Direct Tunnel Mode</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {activeSSHIssue && (
                         <button
                           type="button"
                           onClick={() => {
                             setActiveSSHIssue(null);
-                            toast.success("Active context cleared. Operating globally.");
+                            toast.success("Active context cleared.");
                           }}
-                          className="px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-750 text-[10px] font-bold text-stone-300 transition-colors border border-stone-700 cursor-pointer shrink-0"
+                          className="px-2 py-1 rounded bg-stone-800 hover:bg-stone-705 text-[10px] font-bold text-stone-300 transition-colors cursor-pointer border border-stone-750"
                         >
                           Clear Context
                         </button>
-                      </>
-                    ) : (
-                      <div className="flex items-center gap-2 text-stone-400 font-semibold">
-                        <span className="w-2 h-2 rounded-full bg-stone-605" />
-                        <span className="text-[11px]">Direct Tunnel: Actions execute globally in workspace.</span>
-                      </div>
-                    )}
+                      )}
+
+                      {selectedProjectPath && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            loadArtifacts();
+                            setIsReviewingOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded bg-orange-500/10 hover:bg-orange-500 hover:text-white border border-orange-500/20 text-orange-400 text-[10px] font-extrabold transition-all cursor-pointer flex items-center gap-1 animate-pulse"
+                        >
+                          📁 Review Artifacts {artifactsList.length > 0 && `(${artifactsList.length})`}
+                        </button>
+                      )}
+
+                      {sshRunning && (
+                        <button
+                          type="button"
+                          onClick={terminateSession}
+                          className="px-2.5 py-1 rounded bg-red-500/15 hover:bg-red-500 border border-red-500/35 hover:border-red-500 text-red-400 hover:text-white text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                          title="Terminate active process"
+                        >
+                          <Power className="w-3 h-3 animate-spin duration-1000" /> Kill Shell
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Project Workspace Selector */}
@@ -1094,6 +1316,37 @@ export default function DeveloperHubPage() {
                           </div>
                         )}
                       </div>
+                      
+                      {/* Interactive Permission Selector - Shows only when prompt matches */}
+                      {(() => {
+                        const lastLogText = sshLogs.length > 0 ? sshLogs[sshLogs.length - 1].text : "";
+                        const isProceedPrompt = /do you want to proceed|requesting permission|press.*key|confirm/i.test(lastLogText);
+                        if (!isProceedPrompt) return null;
+                        return (
+                          <div className="px-4 py-2.5 bg-orange-950/60 border-t border-orange-500/20 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0 animate-in slide-in-from-bottom-2 duration-300">
+                            <div className="flex items-center gap-2 text-orange-400 font-bold">
+                              <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                              <span>Prompt Detected: Confirm or cancel request?</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => sendSSHInput("1")}
+                                className="px-3.5 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-[10px] uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-orange-950"
+                              >
+                                Confirm (1)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => sendSSHInput("4")}
+                                className="px-3.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-750 border border-stone-700 text-stone-300 font-extrabold text-[10px] uppercase tracking-wider transition-all cursor-pointer"
+                              >
+                                Cancel (4)
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* Console Action Bar - Fixed Height Pinned at Bottom */}
                       <div className="p-3 bg-stone-900 border-t border-stone-800 flex items-center gap-2 shrink-0">
@@ -1514,6 +1767,160 @@ export default function DeveloperHubPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Workspace Artifact Review Panel */}
+      {isReviewingOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-stone-950/70 backdrop-blur-sm" onClick={() => setIsReviewingOpen(false)} />
+          <div className="relative w-full sm:max-w-3xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-200 overflow-hidden h-[90vh] sm:h-[80vh] flex flex-col animate-in fade-in slide-in-from-bottom-5 duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 shrink-0 bg-stone-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-100 animate-pulse">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm sm:text-base font-extrabold text-stone-900 tracking-tight">
+                    Review Workspace Artifacts & Output
+                  </h2>
+                  <p className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider">
+                    Secure local filesystem sandboxed reader
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsReviewingOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-xl text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Split Panel: Left List, Right Rendered Markdown */}
+            <div className="flex-1 flex overflow-hidden min-h-0">
+              {/* Left sidebar: file list */}
+              <div className={`w-full sm:w-64 border-r border-stone-100 flex flex-col bg-stone-50/30 overflow-y-auto ${selectedArtifact ? "hidden sm:flex" : "flex"}`}>
+                <div className="p-3 border-b border-stone-100 flex items-center justify-between">
+                  <span className="text-[9px] font-extrabold text-stone-450 uppercase tracking-widest block">Available Files</span>
+                  <button
+                    onClick={loadArtifacts}
+                    className="text-[9px] font-bold text-orange-500 hover:underline cursor-pointer"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                {isArtifactsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-stone-400 gap-2">
+                    <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[10px] font-bold">Scanning workspace...</span>
+                  </div>
+                ) : artifactsList.length === 0 ? (
+                  <div className="p-8 text-center text-stone-400 text-xs font-semibold">
+                    No artifacts found in workspace yet.
+                  </div>
+                ) : (
+                  <div className="p-2 space-y-1">
+                    {artifactsList.map((art) => {
+                      const isActive = selectedArtifact?.fullPath === art.fullPath;
+                      return (
+                        <button
+                          key={art.fullPath}
+                          onClick={() => handleSelectArtifact(art)}
+                          className={`w-full text-left p-2.5 rounded-xl transition-all cursor-pointer flex flex-col gap-1 ${isActive
+                              ? "bg-orange-500 text-white shadow-sm"
+                              : "hover:bg-stone-100 text-stone-600"
+                            }`}
+                        >
+                          <span className="text-[11px] font-extrabold truncate w-full flex items-center gap-1.5">
+                            📄 {art.name}
+                          </span>
+                          <span className={`text-[9px] truncate w-full font-medium ${isActive ? "text-orange-200" : "text-stone-400"}`}>
+                            {art.dir === "brain" ? "🧠 Brain Log" : "🚀 Artifacts"} • {new Date(art.mtime).toLocaleDateString()}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Panel: Content */}
+              <div className={`flex-1 flex flex-col overflow-hidden min-h-0 bg-white ${!selectedArtifact ? "hidden sm:flex items-center justify-center text-stone-400" : "flex"}`}>
+                {!selectedArtifact ? (
+                  <div className="p-12 text-center max-w-sm space-y-3">
+                    <Sparkles className="w-8 h-8 text-orange-200 mx-auto animate-pulse" />
+                    <p className="font-bold text-stone-700 text-sm">Select an Artifact to Review</p>
+                    <p className="text-xs text-stone-450 leading-relaxed">
+                      Select any newly generated file from the list to view its complete, formatted contents before proceeding with execution.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Toolbar */}
+                    <div className="px-4 py-2 border-b border-stone-100 bg-stone-50/50 flex items-center justify-between shrink-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <button
+                          onClick={() => setSelectedArtifact(null)}
+                          className="sm:hidden p-1.5 rounded-lg text-stone-450 hover:bg-stone-100 hover:text-stone-900 cursor-pointer mr-1"
+                        >
+                          ← Back
+                        </button>
+                        <span className="text-[11px] font-extrabold text-stone-850 truncate">
+                          Viewing: {selectedArtifact.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedArtifact.content);
+                            toast.success("Content copied to clipboard!");
+                          }}
+                          className="px-2.5 py-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-[10px] font-bold text-stone-600 transition-all cursor-pointer"
+                        >
+                          Copy Raw Text
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Scrollable Document Container */}
+                    <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-stone-50/20 font-sans">
+                      <div className="max-w-2xl mx-auto bg-white border border-stone-100 rounded-2xl p-5 sm:p-6 shadow-sm max-w-none text-stone-800">
+                        <h1 className="text-base sm:text-lg font-black text-stone-900 mb-3 border-b border-stone-100 pb-2 flex items-center gap-2">
+                          <span className="text-orange-500 font-sans">#</span> {selectedArtifact.name}
+                        </h1>
+
+                        <div className="whitespace-pre-wrap font-mono text-[10px] sm:text-xs leading-relaxed text-stone-700 bg-stone-50 rounded-xl p-4 overflow-x-auto border border-stone-100 shadow-inner">
+                          {selectedArtifact.content}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Action Footer */}
+                    <div className="p-4 border-t border-stone-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                      <span className="text-[10px] font-bold text-stone-400 text-center sm:text-left">
+                        Approving this artifact will send the confirmation signal to the active PTY shell.
+                      </span>
+                      <div className="flex gap-2.5 w-full sm:w-auto">
+                        <button
+                          onClick={() => setIsReviewingOpen(false)}
+                          className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-stone-200 text-[11px] font-extrabold text-stone-500 hover:bg-stone-50 transition-colors cursor-pointer"
+                        >
+                          Keep Open
+                        </button>
+                        <button
+                          onClick={handleApproveArtifact}
+                          className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-[11px] shadow-md shadow-orange-100 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <CheckCircle className="w-4 h-4" /> Approve & Proceed (Yes)
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
