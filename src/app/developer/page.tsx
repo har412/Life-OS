@@ -43,17 +43,17 @@ const Github = (props: React.SVGProps<SVGSVGElement>) => (
 
 function getLabelStyle(colorHex: string) {
   const hex = colorHex.toLowerCase().replace("#", "");
-  
+
   let r = parseInt(hex.substring(0, 2), 16);
   let g = parseInt(hex.substring(2, 4), 16);
   let b = parseInt(hex.substring(4, 6), 16);
-  
+
   if (hex.length === 3) {
     r = parseInt(hex[0] + hex[0], 16);
     g = parseInt(hex[1] + hex[1], 16);
     b = parseInt(hex[2] + hex[2], 16);
   }
-  
+
   if (isNaN(r) || isNaN(g) || isNaN(b)) {
     return {
       backgroundColor: "#f5f5f4",
@@ -63,7 +63,7 @@ function getLabelStyle(colorHex: string) {
   }
 
   const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  
+
   if (yiq > 220) {
     return {
       backgroundColor: "#f5f5f4",
@@ -71,7 +71,7 @@ function getLabelStyle(colorHex: string) {
       borderColor: "#d6d3d1",
     };
   }
-  
+
   return {
     backgroundColor: `#${hex}15`,
     color: `#${hex}`,
@@ -120,11 +120,11 @@ function cleanAndFormatText(text: string) {
         endIdx++;
       }
       const seq = text.slice(i, endIdx + 1);
-      
+
       // Extract numeric parameters if any
       const matchNumbers = seq.match(/\d+/g);
       const firstNum = matchNumbers && matchNumbers[0] ? parseInt(matchNumbers[0]) : null;
-      
+
       if (seq.endsWith("K")) {
         // Clear line (EL - Erase in Line)
         const currentLine = lines[cursorY] || "";
@@ -212,7 +212,7 @@ function cleanAndFormatText(text: string) {
         const col = firstNum !== null ? firstNum - 1 : 0;
         cursorX = Math.max(0, col);
       }
-      
+
       i = endIdx + 1;
     } else {
       // Regular printable character
@@ -234,7 +234,7 @@ function cleanAndFormatText(text: string) {
       {lines.map((line, lineIdx) => {
         // Clean leftover control characters
         const cleanLine = line.replace(/[\r\b]/g, "").trimEnd();
-        
+
         // Skip trailing empty lines
         if (!cleanLine && lineIdx === lines.length - 1) return null;
 
@@ -380,11 +380,10 @@ function SearchableRepoSelector({
                       onChange(opt);
                       setIsOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${
-                      isSelected
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${isSelected
                         ? "bg-orange-500 text-white"
                         : "text-stone-700 hover:bg-stone-50"
-                    }`}
+                      }`}
                   >
                     <span className="truncate">{opt}</span>
                     {isSelected && <CheckCircle className="w-3.5 h-3.5 shrink-0 text-white ml-2" />}
@@ -440,7 +439,7 @@ export default function DeveloperHubPage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [aiError, setAiError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState("");
-  
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -510,7 +509,7 @@ export default function DeveloperHubPage() {
 
     setSshRunning(true);
     setSshPrompt("");
-    
+
     // Append user query to logs
     const userLog = {
       type: "system" as const,
@@ -618,6 +617,7 @@ export default function DeveloperHubPage() {
         throw new Error(errData.error || "Failed to send SSH input");
       }
     } catch (err: any) {
+      setSshRunning(false);
       setSshLogs((prev) => [
         ...prev,
         {
@@ -699,6 +699,39 @@ export default function DeveloperHubPage() {
     }
   };
 
+  const cleanVoiceCommand = (text: string): string => {
+    let cleaned = text.trim();
+
+    // Remove trailing period if transcribed as a sentence
+    if (cleaned.endsWith(".")) {
+      cleaned = cleaned.slice(0, -1).trim();
+    }
+
+    // Strip common conversational terminal wrappers
+    const patterns = [
+      /^(?:please\s+)?run\s+command\s+/i,
+      /^(?:please\s+)?run\s+/i,
+      /^(?:please\s+)?execute\s+command\s+/i,
+      /^(?:please\s+)?execute\s+/i,
+      /^(?:please\s+)?check\s+command\s+/i,
+      /^(?:please\s+)?check\s+/i,
+      /^(?:please\s+)?can\s+you\s+run\s+/i,
+      /^(?:please\s+)?can\s+you\s+execute\s+/i,
+      /^(?:please\s+)?can\s+you\s+check\s+/i,
+      /^ssh\s+run\s+/i,
+      /^ssh\s+/i
+    ];
+
+    for (const pattern of patterns) {
+      if (pattern.test(cleaned)) {
+        cleaned = cleaned.replace(pattern, "").trim();
+        break;
+      }
+    }
+
+    return cleaned;
+  };
+
   const processAudio = async (blob: Blob) => {
     setIsProcessing(true);
     try {
@@ -712,21 +745,30 @@ export default function DeveloperHubPage() {
 
       const resData = await response.json();
       setTranscript(resData.transcript);
-      
+
       if (explorerTab === "ssh-agent") {
         setShowVoiceModal(false);
-        setSshPrompt(resData.transcript);
-        runSSHCommand(resData.transcript);
-        toast.success("Voice prompt executed in SSH Agent Tunnel!");
+        const cleanedCmd = cleanVoiceCommand(resData.transcript);
+        
+        if (sshRunning) {
+          // If a command/process is already active (like `agy`), send the input directly to the active stdin session
+          sendSSHInput(cleanedCmd);
+          toast.success("Voice input sent to active SSH PTY shell!");
+        } else {
+          // Otherwise, start/run a brand new command
+          setSshPrompt(cleanedCmd);
+          runSSHCommand(cleanedCmd);
+          toast.success("Voice prompt executed in SSH Agent Tunnel!");
+        }
         return;
       }
-      
+
       if (resData.draft) {
         const draft = resData.draft;
         setNewIssueTitle(draft.title || "");
         setNewIssueBody(draft.body || "");
         setNewIssueLabels(draft.labels || []);
-        
+
         // Match targeted repository dynamically
         if (draft.targetRepo && gitStatus?.selectedRepos?.includes(draft.targetRepo)) {
           setNewIssueRepo(draft.targetRepo);
@@ -767,7 +809,7 @@ export default function DeveloperHubPage() {
         setNewIssueTitle("");
         setNewIssueBody("");
         setNewIssueLabels([]);
-        
+
         if (newIssueRepo === activeRepo) {
           loadIssues(activeRepo, issuesFilter);
         } else {
@@ -879,11 +921,10 @@ export default function DeveloperHubPage() {
                       <button
                         key={repo}
                         onClick={() => setActiveRepo(repo)}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${
-                          isActive
+                        className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${isActive
                             ? "bg-orange-500 text-white shadow-md shadow-orange-100"
                             : "text-stone-700 hover:bg-stone-50"
-                        }`}
+                          }`}
                       >
                         <span className="truncate">{repo}</span>
                         {isActive && <CheckCircle className="w-4 h-4 shrink-0 text-white ml-2" />}
@@ -906,28 +947,26 @@ export default function DeveloperHubPage() {
 
             {/* Right Issues Explorer Panel with Bounded Mobile Heights */}
             <div className="flex-1 bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[calc(100vh-220px)] lg:h-[calc(100vh-180px)] min-h-[520px] lg:min-h-[750px]">
-              
+
               {/* Premium Tab Selector for GitHub Issues vs Interactive SSH Agent Hub */}
-              <div className="flex border-b border-stone-150 bg-stone-50/70 p-1 gap-1 shrink-0">
+              <div className="flex bg-stone-50/70 p-1 gap-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => setExplorerTab("issues")}
-                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    explorerTab === "issues"
-                      ? "bg-white text-orange-600 shadow-sm border border-stone-150/50"
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "issues"
+                      ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
                       : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
-                  }`}
+                    }`}
                 >
                   <FolderGit2 className="w-4 h-4" /> GitHub Issues
                 </button>
                 <button
                   type="button"
                   onClick={() => setExplorerTab("ssh-agent")}
-                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    explorerTab === "ssh-agent"
-                      ? "bg-white text-orange-600 shadow-sm border border-stone-150/50"
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "ssh-agent"
+                      ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
                       : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
-                  }`}
+                    }`}
                 >
                   <Terminal className="w-4 h-4" /> Interactive Agent Hub
                   {activeSSHIssue && (
@@ -938,7 +977,7 @@ export default function DeveloperHubPage() {
 
               {explorerTab === "ssh-agent" ? (
                 <div className="flex-1 flex flex-col overflow-hidden bg-stone-900 text-stone-100 font-sans">
-                  
+
                   {/* Active Context Banner */}
                   <div className="p-3 bg-stone-850 border-b border-stone-800 flex items-center justify-between gap-3 text-xs shrink-0">
                     {activeSSHIssue ? (
@@ -984,11 +1023,10 @@ export default function DeveloperHubPage() {
                             type="button"
                             onClick={() => setSelectedProjectPath(path)}
                             title={path}
-                            className={`px-3 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
-                              isActive
+                            className={`px-3 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${isActive
                                 ? "bg-orange-500 text-white shadow-sm shadow-orange-900"
                                 : "bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-stone-200"
-                            }`}
+                              }`}
                           >
                             📁 {label}
                           </button>
@@ -1023,7 +1061,7 @@ export default function DeveloperHubPage() {
                   ) : (
                     <>
                       {/* Shell Output Console with Custom Bounded Scrolling & Touch Optimization */}
-                      <div 
+                      <div
                         ref={terminalScrollRef}
                         className="flex-1 p-3.5 sm:p-4 overflow-y-auto font-mono text-[10px] sm:text-[11px] leading-relaxed space-y-2.5 bg-stone-950 scrollbar-thin scrollbar-thumb-stone-800 scrollbar-track-stone-950 overscroll-contain"
                       >
@@ -1093,9 +1131,8 @@ export default function DeveloperHubPage() {
                                 startRecording();
                               }
                             }}
-                            className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-stone-500 hover:text-stone-300 transition-all cursor-pointer ${
-                              isRecording ? "text-orange-500 animate-pulse bg-orange-500/10" : ""
-                            }`}
+                            className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-stone-500 hover:text-stone-300 transition-all cursor-pointer ${isRecording ? "text-orange-500 animate-pulse bg-orange-500/10" : ""
+                              }`}
                           >
                             <Mic className="w-3.5 h-3.5" />
                           </button>
@@ -1166,11 +1203,10 @@ export default function DeveloperHubPage() {
                           <button
                             key={opt}
                             onClick={() => setIssuesFilter(opt)}
-                            className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all capitalize ${
-                              issuesFilter === opt
+                            className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all capitalize ${issuesFilter === opt
                                 ? "bg-orange-500 text-white shadow-sm"
                                 : "text-stone-500 hover:text-stone-805"
-                            }`}
+                              }`}
                           >
                             {opt}
                           </button>
@@ -1327,9 +1363,8 @@ export default function DeveloperHubPage() {
                 ) : (
                   <>
                     <div
-                      className={`w-20 h-20 rounded-3xl flex items-center justify-center transition-all duration-500 mb-6 ${
-                        isRecording ? "bg-orange-500 scale-105 shadow-xl shadow-orange-100" : "bg-orange-50"
-                      }`}
+                      className={`w-20 h-20 rounded-3xl flex items-center justify-center transition-all duration-500 mb-6 ${isRecording ? "bg-orange-500 scale-105 shadow-xl shadow-orange-100" : "bg-orange-50"
+                        }`}
                     >
                       {isRecording ? <Square className="w-8 h-8 text-white" /> : <Mic className="w-9 h-9 text-orange-500" />}
                     </div>
@@ -1359,9 +1394,8 @@ export default function DeveloperHubPage() {
 
                     <button
                       onClick={isRecording ? stopRecording : startRecording}
-                      className={`mt-10 px-10 py-3 rounded-2xl font-bold text-base shadow-lg transition-all active:scale-95 ${
-                        isRecording ? "bg-stone-900 text-white shadow-stone-200" : "bg-orange-500 text-white shadow-orange-100"
-                      }`}
+                      className={`mt-10 px-10 py-3 rounded-2xl font-bold text-base shadow-lg transition-all active:scale-95 ${isRecording ? "bg-stone-900 text-white shadow-stone-200" : "bg-orange-500 text-white shadow-orange-100"
+                        }`}
                     >
                       {isRecording ? "Stop Recording" : "Start Recording"}
                     </button>
@@ -1442,11 +1476,10 @@ export default function DeveloperHubPage() {
                             isSelected ? prev.filter((x) => x !== lbl) : [...prev, lbl]
                           );
                         }}
-                        className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all border ${
-                          isSelected
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all border ${isSelected
                             ? "bg-orange-500 text-white border-orange-500 shadow-sm"
                             : "bg-white text-stone-500 border-stone-200 hover:border-orange-200"
-                        }`}
+                          }`}
                       >
                         {lbl}
                       </button>
