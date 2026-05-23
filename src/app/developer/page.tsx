@@ -1399,17 +1399,63 @@ export default function DeveloperHubPage() {
                   ) : (
                     <>
                       {/* Shell Output Console with Custom Bounded Scrolling & Touch Optimization */}
-                      <div
-                        ref={terminalScrollRef}
-                        onScroll={handleTerminalScroll}
-                        className={`flex-1 p-3.5 sm:p-4 overflow-y-auto font-mono leading-relaxed space-y-2.5 bg-stone-950 scrollbar-thin scrollbar-thumb-stone-800 scrollbar-track-stone-950 overscroll-contain transition-all duration-150 ${
-                          terminalFontSize === "sm"
-                            ? "text-[10px] sm:text-[11px]"
-                            : terminalFontSize === "base"
-                            ? "text-[12px] sm:text-[13px]"
-                            : "text-[14px] sm:text-[15px]"
-                        }`}
-                      >
+                      {/* Wrapper for relative positioning of the floating Voice FAB */}
+                      <div className="relative flex-1 overflow-hidden flex flex-col">
+                        {/* ── Floating Voice FAB ── top-right corner of terminal area */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isRecording) {
+                              stopRecording();
+                            } else {
+                              startRecording();
+                            }
+                          }}
+                          className={`absolute top-3 right-3 z-20 flex items-center gap-2 px-3 py-2 rounded-2xl font-bold text-xs shadow-2xl transition-all duration-200 cursor-pointer select-none ${
+                            isRecording
+                              ? "bg-orange-500 text-white shadow-orange-500/50 scale-105"
+                              : "bg-stone-800 border border-stone-700 text-stone-300 hover:bg-stone-700 hover:border-orange-500/40 hover:text-orange-400"
+                          }`}
+                          title={isRecording ? "Stop recording" : "Voice command"}
+                        >
+                          {/* Ripple ring when recording */}
+                          {isRecording && (
+                            <span className="absolute inset-0 rounded-2xl ring-2 ring-orange-400 animate-ping opacity-60 pointer-events-none" />
+                          )}
+
+                          {/* Mic icon or animated waveform bars */}
+                          {isRecording ? (
+                            <span className="flex items-end gap-[3px] h-4">
+                              {[0.6, 1, 0.7, 1, 0.5].map((h, i) => (
+                                <span
+                                  key={i}
+                                  className="w-[3px] bg-white rounded-full animate-bounce"
+                                  style={{
+                                    height: `${h * 100}%`,
+                                    animationDelay: `${i * 80}ms`,
+                                    animationDuration: "0.6s",
+                                  }}
+                                />
+                              ))}
+                            </span>
+                          ) : (
+                            <Mic className="w-4 h-4" />
+                          )}
+
+                          <span>{isRecording ? "Recording…" : "Voice"}</span>
+                        </button>
+
+                        <div
+                          ref={terminalScrollRef}
+                          onScroll={handleTerminalScroll}
+                          className={`flex-1 p-3.5 sm:p-4 overflow-y-auto font-mono leading-relaxed space-y-2.5 bg-stone-950 scrollbar-thin scrollbar-thumb-stone-800 scrollbar-track-stone-950 overscroll-contain transition-all duration-150 ${
+                            terminalFontSize === "sm"
+                              ? "text-[10px] sm:text-[11px]"
+                              : terminalFontSize === "base"
+                              ? "text-[12px] sm:text-[13px]"
+                              : "text-[14px] sm:text-[15px]"
+                          }`}
+                        >
                         {sshLogs.length === 0 ? (
                           <div className="h-full flex flex-col items-center justify-center text-center text-stone-500 gap-2 py-12 my-auto">
                             <Terminal className="w-8 h-8 text-stone-700 animate-pulse" />
@@ -1438,6 +1484,7 @@ export default function DeveloperHubPage() {
                             })}
                           </div>
                         )}
+                      </div>
                       </div>
                       
                       {/* Interactive Permission Selector - Shows only when prompt matches */}
@@ -1475,6 +1522,7 @@ export default function DeveloperHubPage() {
                       <div className="px-3 py-1.5 bg-stone-950 border-t border-stone-850 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-hide">
                         <span className="text-[9px] font-bold text-stone-500 uppercase tracking-wider shrink-0 mr-1">Quick:</span>
                         {[
+                          { label: "Continue", cmd: "continue" },
                           { label: "Agy CLI", cmd: "agy " },
                           { label: "Status", cmd: "git status" },
                           { label: "Run Dev", cmd: "npm run dev" },
@@ -1529,22 +1577,8 @@ export default function DeveloperHubPage() {
                               }
                             }}
                             placeholder={sshRunning ? "Active Shell: Type input..." : "Type command (e.g. dir, agy)..."}
-                            className="w-full pl-3 pr-9 py-2 rounded-xl border border-stone-800 bg-stone-950 text-base sm:text-xs text-stone-100 placeholder-stone-600 focus:outline-none focus:border-orange-500 transition-all font-mono shadow-inner shadow-black/40"
+                            className="w-full pl-3 pr-3 py-2 rounded-xl border border-stone-800 bg-stone-950 text-base sm:text-xs text-stone-100 placeholder-stone-600 focus:outline-none focus:border-orange-500 transition-all font-mono shadow-inner shadow-black/40"
                           />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (isRecording) {
-                                stopRecording();
-                              } else {
-                                startRecording();
-                              }
-                            }}
-                            className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-stone-500 hover:text-stone-300 transition-all cursor-pointer ${isRecording ? "text-orange-500 animate-pulse bg-orange-500/10" : ""
-                              }`}
-                          >
-                            <Mic className="w-3.5 h-3.5" />
-                          </button>
                         </div>
 
                         {sshRunning && (
