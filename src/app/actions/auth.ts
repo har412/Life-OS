@@ -65,3 +65,29 @@ export async function changePassword(password: string) {
 
   return { success: true };
 }
+
+export async function getUserAuthStatus() {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Unauthorized" };
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: {
+      accounts: {
+        select: { provider: true }
+      }
+    }
+  });
+
+  if (!user) return { error: "User not found" };
+
+  const hasGoogleAccount = user.accounts.some(acc => acc.provider === "google");
+  const hasPassword = !!user.hashedPassword;
+
+  return {
+    hasPassword,
+    hasGoogleAccount,
+    email: user.email,
+  };
+}
+

@@ -87,7 +87,7 @@ export default function AppLayout({
   initialViews: any[];
 }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password";
+  const isAuthPage = pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/reset-password";
 
   return (
     <SessionProvider>

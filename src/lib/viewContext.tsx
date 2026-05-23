@@ -111,12 +111,37 @@ export function ViewProvider({
   const [viewToDelete,    setViewToDelete]   = useState<SavedView | null>(null);
   
   const searchParams = useSearchParams();
+  
+  // 1. Sync from URL on mount/update
   useEffect(() => {
     const tid = searchParams?.get("taskId");
     if (tid && tid !== activeTaskId) {
       setActiveTaskId(tid);
     }
   }, [searchParams, activeTaskId]);
+
+  // 2. Sync back to URL when activeTaskId state changes (to prevent notification-click lock/freeze)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const currentParams = new URLSearchParams(window.location.search);
+    const tid = currentParams.get("taskId");
+
+    if (activeTaskId) {
+      if (tid !== activeTaskId) {
+        currentParams.set("taskId", activeTaskId);
+        const newUrl = `${window.location.pathname}?${currentParams.toString()}`;
+        window.history.replaceState(null, "", newUrl);
+      }
+    } else {
+      if (tid) {
+        currentParams.delete("taskId");
+        const remaining = currentParams.toString();
+        const newUrl = remaining ? `${window.location.pathname}?${remaining}` : window.location.pathname;
+        window.history.replaceState(null, "", newUrl);
+      }
+    }
+  }, [activeTaskId]);
 
   const refreshTasks = useCallback(async () => {
     // In a real app, we might fetch here, but Next.js Server Actions 
