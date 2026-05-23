@@ -137,3 +137,114 @@ export async function saveProjectPaths(projectPaths: string) {
     return { error: err.message || "Failed to save project paths" };
   }
 }
+
+import fs from "fs/promises";
+import path from "path";
+
+export async function readWorkspaceFile(filePath: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    const credential = await prisma.sSHCredential.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!credential) {
+      return { error: "SSH / Workspace not configured" };
+    }
+
+    const allowedPaths = (credential.projectPaths || "")
+      .split(/[\n,;]/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => path.resolve(p));
+
+    const targetPath = path.resolve(filePath);
+
+    // Also support reading from standard brain folder for user's own task logs
+    const brainDir = path.resolve("C:\\Users\\Harkirat Win10\\.gemini\\antigravity\\brain");
+    const isBrainPath = targetPath.startsWith(brainDir);
+
+    const isAllowed = isBrainPath || allowedPaths.some((allowed) => targetPath.startsWith(allowed));
+    if (!isAllowed) {
+      return { error: "Access denied: Path is outside the authorized workspace." };
+    }
+
+    const content = await fs.readFile(targetPath, "utf-8");
+    return { success: true, content };
+  } catch (err: any) {
+    return { error: err.message || "Failed to read file" };
+  }
+}
+
+export async function listWorkspaceArtifacts(projectPath: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    const credential = await prisma.sSHCredential.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!credential) {
+      return { error: "SSH / Workspace not configured" };
+    }
+
+    const allowedPaths = (credential.projectPaths || "")
+      .split(/[\n,;]/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => path.resolve(p));
+
+    const targetPath = path.resolve(projectPath);
+
+    const isAllowed = allowedPaths.some((allowed) => targetPath.startsWith(allowed));
+    if (!isAllowed) {
+      return { error: "Access denied: Path is outside the authorized workspace." };
+    }
+
+    const searchDirs = [
+      path.join(targetPath, "artifacts"),
+      path.join(targetPath, ".agents", "artifacts"),
+      path.resolve("C:\\Users\\Harkirat Win10\\.gemini\\antigravity\\brain"),
+    ];
+
+    const allArtifacts: { name: string; fullPath: string; mtime: string; dir: string }[] = [];
+
+    for (const dir of searchDirs) {
+      try {
+        const stats = await fs.stat(dir);
+        if (stats.isDirectory()) {
+          const files = await fs.readdir(dir);
+          for (const file of files) {
+            const fullPath = path.join(dir, file);
+            try {
+              const fileStats = await fs.stat(fullPath);
+              if (fileStats.isFile() && (file.endsWith(".md") || file.endsWith(".txt") || file.endsWith(".json"))) {
+                allArtifacts.push({
+                  name: file,
+                  fullPath,
+                  mtime: fileStats.mtime.toISOString(),
+                  dir: path.basename(dir),
+                });
+              }
+            } catch {}
+          }
+        }
+      } catch {}
+    }
+
+    // Sort by most recently modified
+    allArtifacts.sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime());
+
+    return { success: true, artifacts: allArtifacts };
+  } catch (err: any) {
+    return { error: err.message || "Failed to list artifacts" };
+  }
+}
+
