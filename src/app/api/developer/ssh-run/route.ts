@@ -287,6 +287,8 @@ export async function POST(req: NextRequest) {
       privateKey: credential.authMethod === "KEY" ? secret : undefined,
       passphrase,
       readyTimeout: 15000,
+      keepaliveInterval: 10000, // Send a keepalive packet every 10 seconds to keep connection active
+      keepaliveCountMax: 6,    // Allow 1 minute of unanswered keepalives before closing
     });
 
   // Monitor connection abort for the POST stream
