@@ -8,6 +8,7 @@ import {
   listIssues,
   createIssue,
 } from "@/app/actions/github";
+import { getSSHCredential } from "@/app/actions/ssh";
 import {
   Terminal,
   FolderGit2,
@@ -26,6 +27,9 @@ import {
   Send,
   X,
   FileText,
+  Loader2,
+  Play,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import GitHubConnectPanel from "@/components/GitHubConnectPanel";
@@ -73,6 +77,194 @@ function getLabelStyle(colorHex: string) {
     color: `#${hex}`,
     borderColor: `#${hex}35`,
   };
+}
+
+function cleanAndFormatText(text: string) {
+  if (!text) return "";
+
+  // 1. Process character-by-character terminal emulation for absolute cursor mapping,
+  // carriage returns, backspaces, screen clearing, and cursor movements.
+  let lines: string[] = [""];
+  let cursorX = 0;
+  let cursorY = 0;
+
+  let i = 0;
+  while (i < text.length) {
+    const char = text[i];
+
+    if (char === "\n") {
+      cursorY++;
+      if (cursorY >= lines.length) {
+        lines.push("");
+      }
+      cursorX = 0; // Standard terminal behavior: LF should be accompanied by CR, or move straight down
+      i++;
+    } else if (char === "\r") {
+      cursorX = 0;
+      i++;
+    } else if (char === "\b") {
+      if (cursorX > 0) {
+        cursorX--;
+        const currentLine = lines[cursorY] || "";
+        lines[cursorY] = currentLine.slice(0, cursorX) + currentLine.slice(cursorX + 1);
+      }
+      i++;
+    } else if (text.slice(i).startsWith("\u001b") || text.slice(i).startsWith("\u009b")) {
+      // Find end of ANSI escape sequence (usually a character between 'A' and 'Z' or 'a' and 'z')
+      let endIdx = i + 1;
+      while (endIdx < text.length) {
+        const c = text[endIdx];
+        if ((c >= "a" && c <= "z") || (c >= "A" && c <= "Z")) {
+          break;
+        }
+        endIdx++;
+      }
+      const seq = text.slice(i, endIdx + 1);
+      
+      // Extract numeric parameters if any
+      const matchNumbers = seq.match(/\d+/g);
+      const firstNum = matchNumbers && matchNumbers[0] ? parseInt(matchNumbers[0]) : null;
+      
+      if (seq.endsWith("K")) {
+        // Clear line (EL - Erase in Line)
+        const currentLine = lines[cursorY] || "";
+        if (firstNum === 1) {
+          // Clear from beginning of line to cursor
+          lines[cursorY] = " ".repeat(cursorX) + currentLine.slice(cursorX);
+        } else if (firstNum === 2) {
+          // Clear entire line
+          lines[cursorY] = "";
+        } else {
+          // Clear from cursor to end of line
+          lines[cursorY] = currentLine.slice(0, cursorX);
+        }
+      } else if (seq.endsWith("J")) {
+        // Clear screen (ED - Erase in Display)
+        if (firstNum === 2) {
+          // Clear entire screen & home cursor
+          lines = [""];
+          cursorX = 0;
+          cursorY = 0;
+        } else if (firstNum === 1) {
+          // Clear from beginning of screen to cursor
+          for (let r = 0; r < cursorY; r++) {
+            lines[r] = "";
+          }
+          lines[cursorY] = " ".repeat(cursorX) + (lines[cursorY] || "").slice(cursorX);
+        } else {
+          // Clear from cursor to end of screen
+          if (lines[cursorY]) {
+            lines[cursorY] = lines[cursorY].slice(0, cursorX);
+          }
+          lines.splice(cursorY + 1);
+        }
+      } else if (seq.endsWith("H") || seq.endsWith("f")) {
+        // Absolute Cursor Position (CUP / HVP)
+        const matchPos = seq.match(/\[(\d*);(\d*)/);
+        if (matchPos) {
+          const row = matchPos[1] ? parseInt(matchPos[1]) - 1 : 0;
+          const col = matchPos[2] ? parseInt(matchPos[2]) - 1 : 0;
+          cursorY = Math.max(0, row);
+          while (lines.length <= cursorY) {
+            lines.push("");
+          }
+          cursorX = Math.max(0, col);
+        } else {
+          cursorY = 0;
+          cursorX = 0;
+        }
+      } else if (seq.endsWith("A")) {
+        // Cursor Up (CUU)
+        const count = firstNum !== null ? firstNum : 1;
+        cursorY = Math.max(0, cursorY - count);
+        cursorX = Math.min(cursorX, (lines[cursorY] || "").length);
+      } else if (seq.endsWith("B")) {
+        // Cursor Down (CUD)
+        const count = firstNum !== null ? firstNum : 1;
+        while (lines.length <= cursorY + count) {
+          lines.push("");
+        }
+        cursorY += count;
+        cursorX = Math.min(cursorX, (lines[cursorY] || "").length);
+      } else if (seq.endsWith("C")) {
+        // Cursor Forward (CUF)
+        const count = firstNum !== null ? firstNum : 1;
+        cursorX += count;
+      } else if (seq.endsWith("D")) {
+        // Cursor Backward (CUB)
+        const count = firstNum !== null ? firstNum : 1;
+        cursorX = Math.max(0, cursorX - count);
+      } else if (seq.endsWith("E")) {
+        // Cursor Next Line (CNL)
+        const count = firstNum !== null ? firstNum : 1;
+        while (lines.length <= cursorY + count) {
+          lines.push("");
+        }
+        cursorY += count;
+        cursorX = 0;
+      } else if (seq.endsWith("F")) {
+        // Cursor Previous Line (CPL)
+        const count = firstNum !== null ? firstNum : 1;
+        cursorY = Math.max(0, cursorY - count);
+        cursorX = 0;
+      } else if (seq.endsWith("G")) {
+        // Cursor Horizontal Absolute (CHA)
+        const col = firstNum !== null ? firstNum - 1 : 0;
+        cursorX = Math.max(0, col);
+      }
+      
+      i = endIdx + 1;
+    } else {
+      // Regular printable character
+      let currentLine = lines[cursorY] || "";
+      if (cursorX > currentLine.length) {
+        currentLine = currentLine.padEnd(cursorX, " ");
+      }
+      lines[cursorY] = currentLine.slice(0, cursorX) + char + currentLine.slice(cursorX + 1);
+      cursorX++;
+      i++;
+    }
+  }
+
+  // 2. Scan lines for URLs and format pretty Clickable links
+  const urlRegex = /(https?:\/\/[^\s\r\n]+)/g;
+
+  return (
+    <div className="space-y-0.5">
+      {lines.map((line, lineIdx) => {
+        // Clean leftover control characters
+        const cleanLine = line.replace(/[\r\b]/g, "").trimEnd();
+        if (!cleanLine && lineIdx === lines.length - 1) return null; // Skip trailing empty line
+
+        const parts = cleanLine.split(urlRegex);
+
+        return (
+          <div key={lineIdx} className="min-h-[1.1rem] whitespace-pre-wrap break-all">
+            {parts.map((part, partIdx) => {
+              if (part.match(urlRegex)) {
+                return (
+                  <span key={partIdx} className="block my-2.5 max-w-full">
+                    <a
+                      href={part}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 underline font-bold cursor-pointer bg-orange-500/10 hover:bg-orange-500/20 px-4 py-2.5 rounded-xl border border-orange-500/30 hover:border-orange-500/50 transition-all font-sans text-xs shadow-sm shadow-orange-950/20 select-none"
+                    >
+                      🚀 Click to Log In & Authenticate Antigravity
+                    </a>
+                    <span className="block text-[10px] text-stone-500 mt-1 select-all break-all font-mono opacity-80 border-t border-stone-800/40 pt-1">
+                      {part}
+                    </span>
+                  </span>
+                );
+              }
+              return part;
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function SearchableRepoSelector({
@@ -223,14 +415,57 @@ export default function DeveloperHubPage() {
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // SSH Agent Hub State
+  const [explorerTab, setExplorerTab] = useState<"issues" | "ssh-agent">("issues");
+  const [activeSSHIssue, setActiveSSHIssue] = useState<Issue | null>(null);
+  const [sshLogs, setSshLogs] = useState<{ type: "stdout" | "stderr" | "system"; text: string; timestamp: string }[]>([]);
+  const [sshPrompt, setSshPrompt] = useState("");
+  const [sshRunning, setSshRunning] = useState(false);
+  const [hasSSHCredential, setHasSSHCredential] = useState(false);
+  const [projectPaths, setProjectPaths] = useState<string[]>([]);
+  const [selectedProjectPath, setSelectedProjectPath] = useState<string | null>(null);
+  const terminalScrollRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom of terminal only if user is near bottom or ran a command
+  useEffect(() => {
+    const container = terminalScrollRef.current;
+    if (!container) return;
+
+    // Check if the user is already near the bottom (within a 100px threshold)
+    const threshold = 100;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    const lastLog = sshLogs[sshLogs.length - 1];
+    const isSystemCommand = lastLog?.type === "system";
+
+    if (isNearBottom || isSystemCommand || sshLogs.length <= 1) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+  }, [sshLogs]);
+
   // Load Developer Hub Integration Status
   const loadIntegration = async () => {
     try {
       const res = await getGitHubStatus();
       setGitStatus(res);
       if (res.connected && !res.expired && res.selectedRepos && res.selectedRepos.length > 0) {
-        // Set first repository as active by default
         setActiveRepo(res.selectedRepos[0]);
+      }
+
+      // Check SSH Credentials Setup
+      const sshRes = await getSSHCredential();
+      if (sshRes.success && sshRes.credential) {
+        setHasSSHCredential(true);
+        const raw = sshRes.credential.projectPaths || "";
+        const parsedPaths = raw ? raw.split(";").filter(Boolean) : [];
+        setProjectPaths(parsedPaths);
+        if (parsedPaths.length > 0 && !selectedProjectPath) {
+          setSelectedProjectPath(parsedPaths[0]);
+        }
+      } else {
+        setHasSSHCredential(false);
       }
     } catch (err) {
       console.error(err);
@@ -238,6 +473,132 @@ export default function DeveloperHubPage() {
       setLoading(false);
     }
   };
+
+  const runSSHCommand = async (customPrompt?: string) => {
+    const promptToSend = customPrompt || sshPrompt;
+    if (!promptToSend.trim()) return;
+
+    setSshRunning(true);
+    setSshPrompt("");
+    
+    // Append user query to logs
+    const userLog = {
+      type: "system" as const,
+      text: `$ ${promptToSend}`,
+      timestamp: new Date().toISOString(),
+    };
+    setSshLogs((prev) => [...prev, userLog]);
+
+    try {
+      const response = await fetch("/api/developer/ssh-run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: promptToSend,
+          projectPath: selectedProjectPath,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to execute SSH command");
+      }
+
+      if (!response.body) {
+        throw new Error("Readable stream not available");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      const appendLog = (logObj: { type: "stdout" | "stderr" | "system"; text: string; timestamp?: string }) => {
+        setSshLogs((prev) => {
+          if (prev.length > 0 && prev[prev.length - 1].type === logObj.type && logObj.type !== "system") {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              text: updated[updated.length - 1].text + logObj.text,
+            };
+            return updated;
+          }
+          return [...prev, { ...logObj, timestamp: logObj.timestamp || new Date().toISOString() }];
+        });
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const logObj = JSON.parse(line);
+            appendLog(logObj);
+          } catch (e) {
+            appendLog({ type: "stdout", text: line });
+          }
+        }
+      }
+
+      if (buffer.trim()) {
+        try {
+          const logObj = JSON.parse(buffer);
+          appendLog(logObj);
+        } catch (e) {
+          appendLog({ type: "stdout", text: buffer });
+        }
+      }
+    } catch (err: any) {
+      setSshLogs((prev) => [
+        ...prev,
+        {
+          type: "stderr",
+          text: `❌ Remote execution failed: ${err.message}`,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      toast.error(err.message || "Execution failed");
+    } finally {
+      setSshRunning(false);
+    }
+  };
+
+  const sendSSHInput = async (customInput?: string) => {
+    const inputToSend = customInput !== undefined ? customInput : sshPrompt;
+    if (customInput === undefined && !inputToSend.trim()) return;
+
+    if (customInput === undefined) {
+      setSshPrompt("");
+    }
+
+    try {
+      const response = await fetch("/api/developer/ssh-input", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: inputToSend }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to send SSH input");
+      }
+    } catch (err: any) {
+      setSshLogs((prev) => [
+        ...prev,
+        {
+          type: "stderr",
+          text: `❌ Failed to send input: ${err.message}`,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    }
+  };
+
 
   useEffect(() => {
     loadIntegration();
@@ -322,6 +683,14 @@ export default function DeveloperHubPage() {
       const resData = await response.json();
       setTranscript(resData.transcript);
       
+      if (explorerTab === "ssh-agent") {
+        setShowVoiceModal(false);
+        setSshPrompt(resData.transcript);
+        runSSHCommand(resData.transcript);
+        toast.success("Voice prompt executed in SSH Agent Tunnel!");
+        return;
+      }
+      
       if (resData.draft) {
         const draft = resData.draft;
         setNewIssueTitle(draft.title || "");
@@ -405,7 +774,7 @@ export default function DeveloperHubPage() {
       <title>Developer Hub — Life OS</title>
       <meta name="description" content="Securely inspect scopes, view issues, and issue voice bug-reports on GitHub." />
 
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 lg:px-8 py-6 flex flex-col gap-6">
+      <main className="flex-1 max-w-[1800px] w-full mx-auto px-4 lg:px-8 py-6 flex flex-col gap-6">
         {/* Header Block */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
           <div>
@@ -466,7 +835,7 @@ export default function DeveloperHubPage() {
             </a>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-[500px]">
+          <div className="flex-1 flex flex-col lg:flex-row gap-6">
             {/* Left Repository Sidebar - Desktop Only */}
             <div className="hidden lg:flex lg:w-72 shrink-0 flex-col gap-4">
               <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
@@ -505,130 +874,388 @@ export default function DeveloperHubPage() {
               />
             </div>
 
-            {/* Right Issues List explorer */}
-            <div className="flex-1 bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-              {/* Filter and search bar */}
-              <div className="p-4 border-b border-stone-100 flex flex-col sm:flex-row items-center gap-3 bg-stone-50/50">
-                <div className="relative flex-1 w-full">
-                  <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search issues by title or number..."
-                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-stone-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                  <Filter className="w-3.5 h-3.5 text-stone-400" />
-                  <div className="flex p-0.5 bg-white border border-stone-200 rounded-lg flex-1 sm:flex-none">
-                    {(["open", "closed", "all"] as const).map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => setIssuesFilter(opt)}
-                        className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all capitalize ${
-                          issuesFilter === opt
-                            ? "bg-orange-500 text-white shadow-sm"
-                            : "text-stone-500 hover:text-stone-800"
-                        }`}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            {/* Right Issues Explorer Panel with Bounded Mobile Heights */}
+            <div className="flex-1 bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[calc(100vh-220px)] lg:h-[calc(100vh-180px)] min-h-[520px] lg:min-h-[750px]">
+              
+              {/* Premium Tab Selector for GitHub Issues vs Interactive SSH Agent Hub */}
+              <div className="flex border-b border-stone-150 bg-stone-50/70 p-1 gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setExplorerTab("issues")}
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    explorerTab === "issues"
+                      ? "bg-white text-orange-600 shadow-sm border border-stone-150/50"
+                      : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
+                  }`}
+                >
+                  <FolderGit2 className="w-4 h-4" /> GitHub Issues
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExplorerTab("ssh-agent")}
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    explorerTab === "ssh-agent"
+                      ? "bg-white text-orange-600 shadow-sm border border-stone-150/50"
+                      : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
+                  }`}
+                >
+                  <Terminal className="w-4 h-4" /> Interactive Agent Hub
+                  {activeSSHIssue && (
+                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0" />
+                  )}
+                </button>
               </div>
 
-              {/* List */}
-              <div className="flex-1 overflow-y-auto min-h-[300px]">
-                {issuesLoading ? (
-                  <div className="p-12 text-center text-xs text-stone-400 flex flex-col items-center justify-center gap-3">
-                    <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                    Loading issues from GitHub...
+              {explorerTab === "ssh-agent" ? (
+                <div className="flex-1 flex flex-col overflow-hidden bg-stone-900 text-stone-100 font-sans">
+                  
+                  {/* Active Context Banner */}
+                  <div className="p-3 bg-stone-850 border-b border-stone-800 flex items-center justify-between gap-3 text-xs shrink-0">
+                    {activeSSHIssue ? (
+                      <>
+                        <div className="flex items-center gap-2 text-orange-400 font-semibold min-w-0">
+                          <span className="flex h-2 w-2 relative shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                          </span>
+                          <span className="truncate text-[11px]">
+                            Context: <span className="font-extrabold text-stone-100">Issue #{activeSSHIssue.number}</span> — {activeSSHIssue.title}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveSSHIssue(null);
+                            toast.success("Active context cleared. Operating globally.");
+                          }}
+                          className="px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-750 text-[10px] font-bold text-stone-300 transition-colors border border-stone-700 cursor-pointer shrink-0"
+                        >
+                          Clear Context
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2 text-stone-400 font-semibold">
+                        <span className="w-2 h-2 rounded-full bg-stone-605" />
+                        <span className="text-[11px]">Direct Tunnel: Actions execute globally in workspace.</span>
+                      </div>
+                    )}
                   </div>
-                ) : filteredIssues.length === 0 ? (
-                  <div className="p-12 text-center text-xs text-stone-400 flex flex-col items-center justify-center gap-2">
-                    <MessageSquare className="w-8 h-8 text-stone-300" />
-                    No issues found matching your filters.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-stone-100">
-                    {filteredIssues.map((issue) => (
-                      <div
-                        key={issue.id}
-                        className="p-4 hover:bg-stone-50/50 transition-colors flex items-start gap-3"
+
+                  {/* Project Workspace Selector */}
+                  {hasSSHCredential && projectPaths.length > 0 && (
+                    <div className="px-3 py-2 bg-stone-900 border-b border-stone-800 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-hide">
+                      <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest shrink-0">Workspace:</span>
+                      {projectPaths.map((path) => {
+                        const label = path.split(/[\\/]/).filter(Boolean).pop() || path;
+                        const isActive = selectedProjectPath === path;
+                        return (
+                          <button
+                            key={path}
+                            type="button"
+                            onClick={() => setSelectedProjectPath(path)}
+                            title={path}
+                            className={`px-3 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                              isActive
+                                ? "bg-orange-500 text-white shadow-sm shadow-orange-900"
+                                : "bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-stone-200"
+                            }`}
+                          >
+                            📁 {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {hasSSHCredential && projectPaths.length === 0 && (
+                    <div className="px-3 py-2 bg-stone-900 border-b border-stone-800 flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] text-stone-500 font-semibold">No project workspaces configured.</span>
+                      <a href="/settings" className="text-[10px] text-orange-400 font-bold hover:underline">Add paths in Settings →</a>
+                    </div>
+                  )}
+
+                  {/* Not Configured Alert */}
+                  {!hasSSHCredential ? (
+                    <div className="flex-1 p-8 flex flex-col items-center justify-center text-center gap-4 bg-stone-950/80">
+                      <div className="w-14 h-14 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-500 mb-2">
+                        <AlertCircle className="w-7 h-7" />
+                      </div>
+                      <h3 className="text-base font-bold text-stone-100">SSH Tunnel Credentials Required</h3>
+                      <p className="text-xs text-stone-400 max-w-sm leading-relaxed">
+                        To run local development commands from this portal, you must first configure your SSH host, username, and password or private keys in settings.
+                      </p>
+                      <a
+                        href="/settings"
+                        className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-950/50 transition-colors flex items-center gap-1.5 cursor-pointer mt-2"
                       >
-                        {/* Reporter Avatar */}
-                        {issue.user.avatarUrl ? (
-                          <img
-                            src={issue.user.avatarUrl}
-                            alt={issue.user.login}
-                            className="w-8 h-8 rounded-lg border border-stone-200 shrink-0"
-                          />
+                        Configure SSH in Settings <ChevronRight className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Shell Output Console with Custom Bounded Scrolling & Touch Optimization */}
+                      <div 
+                        ref={terminalScrollRef}
+                        className="flex-1 p-3.5 sm:p-4 overflow-y-auto font-mono text-[10px] sm:text-[11px] leading-relaxed space-y-2.5 bg-stone-950 scrollbar-thin scrollbar-thumb-stone-800 scrollbar-track-stone-950 overscroll-contain"
+                      >
+                        {sshLogs.length === 0 ? (
+                          <div className="h-full flex flex-col items-center justify-center text-center text-stone-500 gap-2 py-12 my-auto">
+                            <Terminal className="w-8 h-8 text-stone-700 animate-pulse" />
+                            <p className="font-bold text-stone-400">Remote Console Connected</p>
+                            <p className="text-[10px] text-stone-500 font-sans max-w-[280px]">
+                              Type standard instruction prompts or use the voice FAB below to dispatch tasks directly into the Antigravity CLI.
+                            </p>
+                          </div>
                         ) : (
-                          <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
-                            <span className="text-xs font-bold text-stone-600">
-                              {issue.user.login[0].toUpperCase()}
-                            </span>
+                          <div className="space-y-2">
+                            {sshLogs.map((log, idx) => {
+                              let textClass = "text-stone-300";
+                              if (log.type === "system") {
+                                textClass = "text-orange-400 font-bold border-l-2 border-orange-500/40 pl-2 py-0.5 bg-orange-500/5 my-1.5";
+                              } else if (log.type === "stderr") {
+                                textClass = "text-red-400 border-l-2 border-red-500/40 pl-2";
+                              } else {
+                                textClass = "text-stone-300 whitespace-pre-wrap break-all";
+                              }
+
+                              return (
+                                <div key={idx} className={textClass}>
+                                  {cleanAndFormatText(log.text)}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Console Action Bar - Fixed Height Pinned at Bottom */}
+                      <div className="p-3 bg-stone-900 border-t border-stone-800 flex items-center gap-2 shrink-0">
+                        {/* Terminal heartbeat status */}
+                        {sshRunning && (
+                          <div className="flex items-center gap-1.5 shrink-0 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1.5 rounded-lg text-emerald-400 text-[10px] font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                            <span className="hidden sm:inline">PTY SHELL ACTIVE</span>
                           </div>
                         )}
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-4">
-                            <h4 className="text-xs font-bold text-stone-800 hover:text-orange-600 transition-colors truncate">
-                              <a href={issue.htmlUrl} target="_blank" rel="noopener noreferrer">
-                                {issue.title}
-                              </a>
-                            </h4>
-                            <span className="text-[10px] text-stone-400 shrink-0">#{issue.number}</span>
-                          </div>
-
-                          <div className="flex items-center gap-3 mt-1 text-[10px] text-stone-400">
-                            <span className="flex items-center gap-0.5">
-                              <Clock className="w-3 h-3 text-stone-300" />
-                              {new Date(issue.createdAt).toLocaleDateString([], {
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </span>
-                            <span>·</span>
-                            <span className="font-semibold text-stone-500">@{issue.user.login}</span>
-
-                            {issue.labels?.length > 0 && (
-                              <>
-                                <span>·</span>
-                                <div className="flex gap-1">
-                                  {issue.labels.map((l) => {
-                                    const style = getLabelStyle(l.color);
-                                    return (
-                                      <span
-                                        key={l.name}
-                                        className="px-1.5 py-0.5 rounded text-[8px] font-bold border"
-                                        style={style}
-                                      >
-                                        {l.name}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              </>
-                            )}
-                          </div>
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            value={sshPrompt}
+                            onChange={(e) => setSshPrompt(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                if (sshRunning) {
+                                  sendSSHInput();
+                                } else {
+                                  runSSHCommand();
+                                }
+                              }
+                            }}
+                            placeholder={sshRunning ? "Active Shell: Type input..." : "Type command (e.g. dir, agy)..."}
+                            className="w-full pl-3 pr-9 py-2 rounded-xl border border-stone-800 bg-stone-950 text-base sm:text-xs text-stone-100 placeholder-stone-600 focus:outline-none focus:border-orange-500 transition-all font-mono shadow-inner shadow-black/40"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isRecording) {
+                                stopRecording();
+                              } else {
+                                startRecording();
+                              }
+                            }}
+                            className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-stone-500 hover:text-stone-300 transition-all cursor-pointer ${
+                              isRecording ? "text-orange-500 animate-pulse bg-orange-500/10" : ""
+                            }`}
+                          >
+                            <Mic className="w-3.5 h-3.5" />
+                          </button>
                         </div>
 
-                        <a
-                          href={issue.htmlUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-lg text-stone-300 hover:text-stone-600 hover:bg-stone-100 shrink-0 transition-all ml-2"
+                        {sshRunning && (
+                          <button
+                            type="button"
+                            onClick={() => sendSSHInput("ctrl+c")}
+                            className="px-2.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500 border border-red-500/30 hover:border-red-500 text-red-400 hover:text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                            title="Send Ctrl+C"
+                          >
+                            <span className="font-mono text-[9px]">Ctrl+C</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (sshRunning) {
+                              sendSSHInput();
+                            } else {
+                              runSSHCommand();
+                            }
+                          }}
+                          disabled={!sshPrompt.trim()}
+                          className="px-3 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-950/50 transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1 cursor-pointer shrink-0"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                          <Send className="w-3 h-3" />
+                          <span>{sshRunning ? "Send" : "Run"}</span>
+                        </button>
+
+                        {sshLogs.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSshLogs([]);
+                              toast.success("Console cleared");
+                            }}
+                            className="p-2 rounded-xl bg-stone-800 hover:bg-stone-750 border border-stone-800 text-stone-400 hover:text-stone-200 transition-all cursor-pointer shrink-0"
+                            title="Clear Terminal Output"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
-                    ))}
+                    </>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Filter and search bar */}
+                  <div className="p-4 border-b border-stone-100 flex flex-col sm:flex-row items-center gap-3 bg-stone-50/50 shrink-0">
+                    <div className="relative flex-1 w-full">
+                      <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search issues by title or number..."
+                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-stone-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                      <Filter className="w-3.5 h-3.5 text-stone-400" />
+                      <div className="flex p-0.5 bg-white border border-stone-200 rounded-lg flex-1 sm:flex-none">
+                        {(["open", "closed", "all"] as const).map((opt) => (
+                          <button
+                            key={opt}
+                            onClick={() => setIssuesFilter(opt)}
+                            className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all capitalize ${
+                              issuesFilter === opt
+                                ? "bg-orange-500 text-white shadow-sm"
+                                : "text-stone-500 hover:text-stone-805"
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  {/* List */}
+                  <div className="flex-1 overflow-y-auto min-h-[300px]">
+                    {issuesLoading ? (
+                      <div className="p-12 text-center text-xs text-stone-400 flex flex-col items-center justify-center gap-3">
+                        <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                        Loading issues from GitHub...
+                      </div>
+                    ) : filteredIssues.length === 0 ? (
+                      <div className="p-12 text-center text-xs text-stone-400 flex flex-col items-center justify-center gap-2">
+                        <MessageSquare className="w-8 h-8 text-stone-300" />
+                        No issues found matching your filters.
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-stone-100">
+                        {filteredIssues.map((issue) => (
+                          <div
+                            key={issue.id}
+                            className="p-4 hover:bg-stone-50/50 transition-colors flex items-start gap-3"
+                          >
+                            {/* Reporter Avatar */}
+                            {issue.user.avatarUrl ? (
+                              <img
+                                src={issue.user.avatarUrl}
+                                alt={issue.user.login}
+                                className="w-8 h-8 rounded-lg border border-stone-200 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
+                                <span className="text-xs font-bold text-stone-600">
+                                  {issue.user.login[0].toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-4 font-sans">
+                                <h4 className="text-xs font-bold text-stone-850 hover:text-orange-600 transition-colors truncate">
+                                  <a href={issue.htmlUrl} target="_blank" rel="noopener noreferrer">
+                                    {issue.title}
+                                  </a>
+                                </h4>
+                                <span className="text-[10px] text-stone-400 shrink-0">#{issue.number}</span>
+                              </div>
+
+                              <div className="flex items-center gap-3 mt-1 text-[10px] text-stone-400">
+                                <span className="flex items-center gap-0.5">
+                                  <Clock className="w-3 h-3 text-stone-300" />
+                                  {new Date(issue.createdAt).toLocaleDateString([], {
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
+                                </span>
+                                <span>·</span>
+                                <span className="font-semibold text-stone-500">@{issue.user.login}</span>
+
+                                {issue.labels?.length > 0 && (
+                                  <>
+                                    <span>·</span>
+                                    <div className="flex gap-1">
+                                      {issue.labels.map((l) => {
+                                        const style = getLabelStyle(l.color);
+                                        return (
+                                          <span
+                                            key={l.name}
+                                            className="px-1.5 py-0.5 rounded text-[8px] font-bold border"
+                                            style={style}
+                                          >
+                                            {l.name}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                              {issue.state === "open" && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveSSHIssue(issue);
+                                    setExplorerTab("ssh-agent");
+                                    toast.success(`Active context set to Issue #${issue.number}!`);
+                                  }}
+                                  className="px-2 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 border border-orange-105 text-[10px] font-bold text-orange-600 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                                >
+                                  <Terminal className="w-3 h-3" /> Work
+                                </button>
+                              )}
+                              <a
+                                href={issue.htmlUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded-lg text-stone-300 hover:text-stone-600 hover:bg-stone-100 shrink-0 transition-all"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
