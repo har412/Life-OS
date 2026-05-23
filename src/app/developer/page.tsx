@@ -1232,10 +1232,10 @@ export default function DeveloperHubPage() {
                 <div className="flex-1 flex flex-col overflow-hidden bg-stone-900 text-stone-100 font-sans">
 
                   {/* Active Context Banner with Session Controls & Artifact Drawer Access */}
-                  <div className={`p-3 bg-stone-900 border-b border-stone-800 flex items-center justify-between gap-3 text-xs shrink-0 ${
+                  <div className={`p-3 bg-stone-900 border-b border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-xs shrink-0 ${
                     isTerminalMaximized ? "pt-[calc(12px+env(safe-area-inset-top))]" : ""
                   }`}>
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 w-full sm:w-auto justify-between sm:justify-start">
                       {activeSSHIssue ? (
                         <div className="flex items-center gap-1.5 text-orange-400 font-semibold truncate">
                           <span className="flex h-2 w-2 relative shrink-0">
@@ -1254,7 +1254,7 @@ export default function DeveloperHubPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0 w-full sm:w-auto justify-end">
                       {activeSSHIssue && (
                         <button
                           type="button"
