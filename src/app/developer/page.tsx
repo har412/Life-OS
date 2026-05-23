@@ -229,51 +229,71 @@ function cleanAndFormatText(text: string) {
     }
   }
 
-  // 2. Scan lines for URLs and format pretty Clickable links
+  // 2. Clean, filter noise, and compress consecutive whitespace lines
   const urlRegex = /(https?:\/\/[^\s\r\n]+)/g;
+  const cleanedLines: { cleanLine: string; isWhitespaceOnly: boolean }[] = [];
+
+  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+    const rawLine = lines[lineIdx];
+    const cleanLine = rawLine.replace(/[\r\b]/g, "").trimEnd();
+    const trimmed = cleanLine.trim();
+
+    // Skip trailing empty lines at the very end of output
+    if (!cleanLine && lineIdx === lines.length - 1) continue;
+
+    // Console Noise Filtering
+    const isNoise = [
+      /esc to cancel/i,
+      /Gemini\s+(?:3\.5|1\.5|1\.0)?\s*(?:Flash|Pro)?\s*\(Medium\)/i,
+      /Gemini\s+(?:3\.5|1\.5|1\.0)?\s*(?:Flash|Pro)?/i,
+      /↑\/↓\s+Navigate/i,
+      /Navigate\s+·\s+tab\s+Amend/i,
+      /e\s+edit\s+command/i,
+      /Yes,\s+and\s+always\s+allow/i,
+      /Persist\s+to\s+settings\.json/i,
+      /^\d+\.\s*Yes/i,
+      /^\d+\.\s*No/i,
+      /^Yes$/i,
+      /^No$/i,
+      /^\?.*?Yes/i,
+      /^\?.*?No/i
+    ].some(regex => regex.test(trimmed));
+
+    if (isNoise) continue;
+
+    const isWhitespaceOnly = trimmed === "";
+
+    // Compress excessive consecutive empty/whitespace-only lines
+    if (isWhitespaceOnly) {
+      const prev = cleanedLines.length > 0 ? cleanedLines[cleanedLines.length - 1] : null;
+      if (prev && prev.isWhitespaceOnly) {
+        continue;
+      }
+    }
+
+    cleanedLines.push({ cleanLine, isWhitespaceOnly });
+  }
 
   return (
     <div className="space-y-0.5">
-      {lines.map((line, lineIdx) => {
-        // Clean leftover control characters
-        const cleanLine = line.replace(/[\r\b]/g, "").trimEnd();
+      {cleanedLines.map((lineObj, lineIdx) => {
+        const { cleanLine, isWhitespaceOnly } = lineObj;
 
-        // Skip trailing empty lines
-        if (!cleanLine && lineIdx === lines.length - 1) return null;
-
-        const trimmed = cleanLine.trim();
-
-        // Console Noise Filtering: Filter out interactive agent prompt and selection boilerplates
-        const isNoise = [
-          /esc to cancel/i,
-          /Gemini\s+(?:3\.5|1\.5|1\.0)?\s*(?:Flash|Pro)?\s*\(Medium\)/i,
-          /Gemini\s+(?:3\.5|1\.5|1\.0)?\s*(?:Flash|Pro)?/i,
-          /↑\/↓\s+Navigate/i,
-          /Navigate\s+·\s+tab\s+Amend/i,
-          /e\s+edit\s+command/i,
-          /Yes,\s+and\s+always\s+allow/i,
-          /Persist\s+to\s+settings\.json/i,
-          /^\d+\.\s*Yes/i,
-          /^\d+\.\s*No/i,
-          /^Yes$/i,
-          /^No$/i,
-          /^\?.*?Yes/i,
-          /^\?.*?No/i
-        ].some(regex => regex.test(trimmed));
-
-        if (isNoise) return null;
-
-        // Compress excessive consecutive empty lines inside terminal scroll logs
-        if (!cleanLine) {
-          const prevLine = lineIdx > 0 ? lines[lineIdx - 1].replace(/[\r\b]/g, "").trimEnd() : null;
-          if (!prevLine) return null;
-        }
-
-        const parts = cleanLine.split(urlRegex);
+        // On mobile, completely hide whitespace-only lines to save screen real estate.
+        // On desktop, render them with a standard line height, but strip all spaces
+        // (by rendering an empty string) so that they never wrap or occupy multiple lines.
+        const parts = isWhitespaceOnly ? "" : cleanLine.split(urlRegex);
 
         return (
-          <div key={lineIdx} className="min-h-[1.1rem] whitespace-pre-wrap break-all">
-            {parts.map((part, partIdx) => {
+          <div
+            key={lineIdx}
+            className={`whitespace-pre-wrap break-all ${
+              isWhitespaceOnly
+                ? "hidden sm:block min-h-[1.1rem]"
+                : "min-h-[1.1rem]"
+            }`}
+          >
+            {isWhitespaceOnly ? "" : typeof parts === "string" ? parts : parts.map((part, partIdx) => {
               if (part.match(urlRegex)) {
                 return (
                   <span key={partIdx} className="block my-2.5 max-w-full">
