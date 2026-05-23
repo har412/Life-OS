@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   type FilterState, type SavedView, type CategoryDef, type Task,
   DEFAULT_FILTERS, PRESET_SAVED_VIEWS, BUILT_IN_CATEGORIES, CUSTOM_CAT_COLORS,
@@ -111,6 +111,8 @@ export function ViewProvider({
   const [viewToDelete,    setViewToDelete]   = useState<SavedView | null>(null);
   
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   
   // 1. Sync from URL on mount/update
   useEffect(() => {
@@ -130,18 +132,16 @@ export function ViewProvider({
     if (activeTaskId) {
       if (tid !== activeTaskId) {
         currentParams.set("taskId", activeTaskId);
-        const newUrl = `${window.location.pathname}?${currentParams.toString()}`;
-        window.history.replaceState(null, "", newUrl);
+        router.replace(`${pathname}?${currentParams.toString()}`, { scroll: false });
       }
     } else {
       if (tid) {
         currentParams.delete("taskId");
         const remaining = currentParams.toString();
-        const newUrl = remaining ? `${window.location.pathname}?${remaining}` : window.location.pathname;
-        window.history.replaceState(null, "", newUrl);
+        router.replace(remaining ? `${pathname}?${remaining}` : pathname, { scroll: false });
       }
     }
-  }, [activeTaskId]);
+  }, [activeTaskId, router, pathname]);
 
   const refreshTasks = useCallback(async () => {
     // In a real app, we might fetch here, but Next.js Server Actions 
