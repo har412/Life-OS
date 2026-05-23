@@ -69,7 +69,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         BUILT_IN_CATEGORIES.map(cat => 
           prisma.category.create({
             data: {
-              id: cat.id,
               label: cat.label,
               colorCode: JSON.stringify({ dot: cat.dot, badge: cat.badge, text: cat.text }),
               userId: user.id!,

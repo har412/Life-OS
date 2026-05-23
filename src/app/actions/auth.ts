@@ -33,7 +33,6 @@ export async function registerUser(formData: FormData) {
       hashedPassword,
       categories: {
         create: BUILT_IN_CATEGORIES.map(cat => ({
-          id: cat.id,
           label: cat.label,
           colorCode: JSON.stringify({ dot: cat.dot, badge: cat.badge, text: cat.text }),
         })),
