@@ -13,7 +13,7 @@ const withPWA = withPWAInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // config options here
+  serverExternalPackages: ["ssh2", "bcrypt"],
   turbopack: {},
 };
 
