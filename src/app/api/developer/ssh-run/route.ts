@@ -7,18 +7,39 @@ import { Client } from "ssh2";
 export const dynamic = "force-dynamic";
 
 // Key: userId, Value: shell stream + connection reference + cached logs + active writers + metadata
-export const activeSessions = new Map<
-  string,
-  {
-    shell: any;
-    conn: any;
-    logs: { type: "stdout" | "stderr" | "system"; text: string; timestamp: string }[];
-    writers: Set<WritableStreamDefaultWriter<Uint8Array>>;
-    encoder: TextEncoder;
-    projectPath: string | null;
-    prompt: string;
-  }
->();
+const globalForSSH = globalThis as unknown as {
+  sshActiveSessions: Map<
+    string,
+    {
+      shell: any;
+      conn: any;
+      logs: { type: "stdout" | "stderr" | "system"; text: string; timestamp: string }[];
+      writers: Set<WritableStreamDefaultWriter<Uint8Array>>;
+      encoder: TextEncoder;
+      projectPath: string | null;
+      prompt: string;
+    }
+  >;
+};
+
+export const activeSessions =
+  globalForSSH.sshActiveSessions ||
+  new Map<
+    string,
+    {
+      shell: any;
+      conn: any;
+      logs: { type: "stdout" | "stderr" | "system"; text: string; timestamp: string }[];
+      writers: Set<WritableStreamDefaultWriter<Uint8Array>>;
+      encoder: TextEncoder;
+      projectPath: string | null;
+      prompt: string;
+    }
+  >();
+
+if (process.env.NODE_ENV !== "production") {
+  globalForSSH.sshActiveSessions = activeSessions;
+}
 
 export async function GET(req: NextRequest) {
   const session = await auth();
