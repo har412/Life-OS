@@ -31,6 +31,8 @@ import {
   Play,
   Trash2,
   Power,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { toast } from "sonner";
 import GitHubConnectPanel from "@/components/GitHubConnectPanel";
@@ -447,6 +449,7 @@ export default function DeveloperHubPage() {
 
   // SSH Agent Hub State
   const [explorerTab, setExplorerTab] = useState<"issues" | "ssh-agent">("issues");
+  const [isTerminalMaximized, setIsTerminalMaximized] = useState(false);
   const [activeSSHIssue, setActiveSSHIssue] = useState<Issue | null>(null);
   const [sshLogs, setSshLogs] = useState<{ type: "stdout" | "stderr" | "system"; text: string; timestamp: string }[]>([]);
   const [sshPrompt, setSshPrompt] = useState("");
@@ -1139,34 +1142,40 @@ export default function DeveloperHubPage() {
             </div>
 
             {/* Right Issues Explorer Panel with Bounded Mobile Heights */}
-            <div className="flex-1 bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[calc(100vh-220px)] lg:h-[calc(100vh-180px)] min-h-[520px] lg:min-h-[750px]">
+            <div className={`transition-all duration-300 flex flex-col overflow-hidden ${
+              isTerminalMaximized && explorerTab === "ssh-agent"
+                ? "fixed inset-0 z-50 rounded-none w-screen h-screen min-h-screen border-none bg-stone-900"
+                : "flex-1 bg-white border border-stone-200 rounded-2xl shadow-sm h-[calc(100vh-220px)] lg:h-[calc(100vh-180px)] min-h-[520px] lg:min-h-[750px]"
+            }`}>
 
               {/* Premium Tab Selector for GitHub Issues vs Interactive SSH Agent Hub */}
-              <div className="flex bg-stone-50/70 p-1 gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setExplorerTab("issues")}
-                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "issues"
-                      ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
-                      : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
-                    }`}
-                >
-                  <FolderGit2 className="w-4 h-4" /> GitHub Issues
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setExplorerTab("ssh-agent")}
-                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "ssh-agent"
-                      ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
-                      : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
-                    }`}
-                >
-                  <Terminal className="w-4 h-4" /> Interactive Agent Hub
-                  {activeSSHIssue && (
-                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0" />
-                  )}
-                </button>
-              </div>
+              {!(isTerminalMaximized && explorerTab === "ssh-agent") && (
+                <div className="flex bg-stone-50/70 p-1 gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setExplorerTab("issues")}
+                    className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "issues"
+                        ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
+                        : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
+                      }`}
+                  >
+                    <FolderGit2 className="w-4 h-4" /> GitHub Issues
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExplorerTab("ssh-agent")}
+                    className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "ssh-agent"
+                        ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
+                        : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
+                      }`}
+                  >
+                    <Terminal className="w-4 h-4" /> Interactive Agent Hub
+                    {activeSSHIssue && (
+                      <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0" />
+                    )}
+                  </button>
+                </div>
+              )}
 
               {explorerTab === "ssh-agent" ? (
                 <div className="flex-1 flex flex-col overflow-hidden bg-stone-900 text-stone-100 font-sans">
@@ -1229,6 +1238,23 @@ export default function DeveloperHubPage() {
                           <Power className="w-3 h-3 animate-spin duration-1000" /> Kill Shell
                         </button>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={() => setIsTerminalMaximized(!isTerminalMaximized)}
+                        className="px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-700 hover:text-white border border-stone-700 text-stone-300 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                        title={isTerminalMaximized ? "Exit Fullscreen" : "Maximize Console"}
+                      >
+                        {isTerminalMaximized ? (
+                          <>
+                            <Minimize2 className="w-3 h-3 text-orange-400" /> <span className="hidden sm:inline">Minimize</span>
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="w-3 h-3 text-orange-400" /> <span className="hidden sm:inline">Maximize</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
 
