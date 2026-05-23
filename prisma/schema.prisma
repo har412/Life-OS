@@ -31,6 +31,7 @@ model User {
   aiSettings        AISettings?
   githubIntegration GitHubIntegration?
   githubAuditLogs   GitHubAuditLog[]
+  sshCredential     SSHCredential?
 }
 
 model AISettings {
@@ -177,4 +178,19 @@ model GitHubAuditLog {
   actionType String
   status     Int
   timestamp  DateTime @default(now())
+}
+
+model SSHCredential {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  host            String
+  port            Int      @default(22)
+  username        String
+  authMethod      String   // "PASSWORD" or "KEY"
+  encryptedSecret String   // Encrypted password or encrypted private key
+  passphrase      String?  // Optional encrypted passphrase for private key (if it has one)
+  projectPaths    String?  // Semicolon-separated local directory paths of repositories on the laptop
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

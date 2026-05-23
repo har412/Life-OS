@@ -17,6 +17,7 @@ const CategoryManager = dynamic(() => import("@/components/CategoryManager"), { 
 const PushSubscriptionManager = dynamic(() => import("@/components/PushSubscriptionManager"), { ssr: false });
 const AISettingsManager = dynamic(() => import("@/components/AISettingsManager"), { ssr: false });
 const GitHubConnectPanel = dynamic(() => import("@/components/GitHubConnectPanel"), { ssr: false });
+const SSHTunnelPanel = dynamic(() => import("@/components/SSHTunnelPanel"), { ssr: false });
 
 type Tab = "categories" | "notifications" | "account" | "ai" | "developer" /* | "display" */;
 
@@ -248,7 +249,12 @@ export default function SettingsPage() {
     categories:    <CategoryManager/>,
     notifications: <NotificationsTab/>,
     ai:            <AISettingsManager/>,
-    developer:     <GitHubConnectPanel/>,
+    developer: (
+      <div className="space-y-6">
+        <GitHubConnectPanel />
+        <SSHTunnelPanel />
+      </div>
+    ),
     account:       <AccountTab/>,
     // display:       <DisplayTab/>,
   } as Record<Tab, React.ReactNode>;
