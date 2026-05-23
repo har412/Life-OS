@@ -1719,7 +1719,7 @@ export default function DeveloperHubPage() {
 
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-4 font-sans">
-                                <h4 className="text-xs font-bold text-stone-850 hover:text-orange-600 transition-colors truncate">
+                                <h4 className="text-xs font-bold text-stone-850 hover:text-orange-600 transition-colors whitespace-normal break-words">
                                   <a href={issue.htmlUrl} target="_blank" rel="noopener noreferrer">
                                     {issue.title}
                                   </a>
