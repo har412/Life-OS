@@ -1,4 +1,4 @@
-#  Life-OS (Task & Alert Management Capsule)
+# Life-OS (Task & Alert Management Capsule) 🚀
 
 > **A premium, privacy-first personal task manager and voice-dictated "think aloud" capture engine.** Just talk, and let advanced AI extract your task list, schedule deadlines, assess priorities, and queue multi-stage active push alerts—powered by Next.js, Prisma, Upstash QStash, and your own AI keys.
 
@@ -17,7 +17,7 @@ Most task managers are tedious: they force you to type titles, click date-picker
 1. Captures your voice with browser Web Audio APIs.
 2. Sends the audio to **Whisper STT** (via OpenAI or lightning-fast **Groq** free tier).
 3. Pipes the text transcript to your choice of LLM (GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Flash, or Llama 3 on Groq/OpenRouter).
-4. Extract structured task properties (Title, Category, Priority, Deadlines) and injects them instantly with premium optimistic updates into your board!
+4. Extracts structured task properties (Title, Category, Priority, Deadlines) and injects them instantly with premium optimistic updates into your board!
 
 ---
 
@@ -49,16 +49,33 @@ sequenceDiagram
 
 ---
 
-## ✨ Outstanding Features
+## ✨ Outstanding Features (Newly Expanded!)
 
-- 🛸 **Dynamic Workspace Views**:
-  - **Table View**: WhatsApp-style micro-layouts on mobile, structured spreadsheets with full sorting, paging, and keyboard navigations on desktop.
-  - **Kanban Board**: Drag-and-drop boards to track status pipelines (Backlog, Todo, Scheduled, Cancelled).
-  - **Week View**: Clean, grid columns showing task loads for the current week.
-- 🎙️ **BYOK AI Settings Manager**: Completely free-to-operate using Groq API keys. Instantly toggles between Groq (`llama3-70b-8192` + `whisper-large-v3`), OpenAI, Gemini, or Claude.
-- 🔔 **Multi-Stage Push Alerts**: Scheduled via Upstash QStash, sending email alerts and web pushes at customized intervals (e.g. 10m before task starts).
-- 📱 **Mobile Optimized PWA**: Add to home screen, auto-installed service workers, offline-capable databases, and a full purgative **Hard Refresh** action bar button to bypass strict mobile cache limits instantly.
-- 🛡️ **No Accidental Loss**: Protects tasks, categories, and saved views using premium custom confirmation overlays instead of cheap system alert windows.
+### 🎙️ 1. Universal Voice Commander
+* **Natural Language Dictation**: Capture audio thoughts on the fly. Extracts title, description, category, due dates, and priority using state-of-the-art LLM JSON structures.
+* **Optimistic Live Drafting**: Watch the task draft forms populate automatically while saving with zero latency.
+
+### 📋 2. Interactive Kanban & Chronological Multi-Views
+* **Kanban Board**: Drag-and-drop task status pipelines (Backlog, Scheduled, In Progress, Done, Cancelled).
+* **Table View**: WhatsApp-style micro-layouts on mobile, structured spreadsheets with full sorting, paging, and keyboard navigation on desktop.
+* **Week View**: Clean, grid columns showing task loads for the current week.
+* **Touch-Grip Mobile Control**: Kanban cards utilize a specialized vertical grab handle (`GripVertical`) preventing touch scrolling collisions, maintaining pristine native mobile swipe fluidity.
+
+### 💻 3. Advanced Developer Hub (DevPortal / CLI)
+An engineering command center designed to monitor local services and synchronize task states securely:
+* **PTY SSH Console Client**: Full live interactive console with secure SSH tunnel configurations and keepalive heartbeats to maintain active connections.
+* **Popped-out Neon Voice FAB**: Larger floating mic button located in the terminal top-right, featuring dual expanding glowing rings (`animate-ping`) and floating status strings to indicate voice state.
+* **Workspace Artifact Sandbox Reader**: Read and verify generated repository files securely before committing or executing terminal instructions.
+* **GitHub Issues Sync**: Pull down repository issues in real-time, wrap titles perfectly (avoiding trailing dot-dot-dots), and bind them directly as active task context.
+
+### 🔒 4. Access Guard & SMTP Authentication
+* **SMTP Reset password loop**: High-security forgot/reset password flow powered by Resend SMTP configurations.
+* **Local Password Upgrades**: Allows users signed in via Google OAuth to securely establish custom local passwords without breaking session tokens.
+* **Multi-tenant Isolation locks**: Session-validated Next.js Server Actions securing all IDOR locks to enforce absolute database isolation.
+
+### 📱 5. High-Performance Mobile PWA
+* **Add to Home Screen**: PWA ready with registered service workers and offline database assets.
+* **Hard Refresh Action**: dedicated reload button in the navigation header that automatically clears registered service workers and web cache to resolve local cache locks instantly.
 
 ---
 
@@ -113,22 +130,6 @@ sequenceDiagram
    npm run dev
    ```
    Open `http://localhost:3000` to start dictating!
-
----
-
-## 📁 Monorepo Structure
-
-```text
-apps/web/
-├── prisma/             # Schema configuration & migrations
-├── public/             # Static icons, manifest, and service-workers
-└── src/
-    ├── app/            # App Router & API routes
-    │   ├── actions/    # Type-safe Server Actions (Tasks, Views)
-    │   └── api/        # Auth, Alerts, and AI endpoints
-    ├── components/     # High-fidelity dashboard views & modal containers
-    └── lib/            # Shared React viewContext state & task data structures
-```
 
 ---
 
