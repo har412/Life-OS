@@ -617,6 +617,7 @@ export default function DeveloperHubPage() {
         throw new Error(errData.error || "Failed to send SSH input");
       }
     } catch (err: any) {
+      setSshRunning(false);
       setSshLogs((prev) => [
         ...prev,
         {
@@ -948,12 +949,12 @@ export default function DeveloperHubPage() {
             <div className="flex-1 bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[calc(100vh-220px)] lg:h-[calc(100vh-180px)] min-h-[520px] lg:min-h-[750px]">
 
               {/* Premium Tab Selector for GitHub Issues vs Interactive SSH Agent Hub */}
-              <div className="flex border-b border-stone-150 bg-stone-50/70 p-1 gap-1 shrink-0">
+              <div className="flex bg-stone-50/70 p-1 gap-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => setExplorerTab("issues")}
                   className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "issues"
-                      ? "bg-white text-orange-600 shadow-sm border border-stone-150/50"
+                      ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
                       : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
                     }`}
                 >
@@ -963,7 +964,7 @@ export default function DeveloperHubPage() {
                   type="button"
                   onClick={() => setExplorerTab("ssh-agent")}
                   className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${explorerTab === "ssh-agent"
-                      ? "bg-white text-orange-600 shadow-sm border border-stone-150/50"
+                      ? "bg-white text-orange-600 shadow-sm border border-stone-200/50"
                       : "text-stone-500 hover:text-stone-700 hover:bg-stone-100/50"
                     }`}
                 >
