@@ -699,6 +699,39 @@ export default function DeveloperHubPage() {
     }
   };
 
+  const cleanVoiceCommand = (text: string): string => {
+    let cleaned = text.trim();
+    
+    // Remove trailing period if transcribed as a sentence
+    if (cleaned.endsWith(".")) {
+      cleaned = cleaned.slice(0, -1).trim();
+    }
+    
+    // Strip common conversational terminal wrappers
+    const patterns = [
+      /^(?:please\s+)?run\s+command\s+/i,
+      /^(?:please\s+)?run\s+/i,
+      /^(?:please\s+)?execute\s+command\s+/i,
+      /^(?:please\s+)?execute\s+/i,
+      /^(?:please\s+)?check\s+command\s+/i,
+      /^(?:please\s+)?check\s+/i,
+      /^(?:please\s+)?can\s+you\s+run\s+/i,
+      /^(?:please\s+)?can\s+you\s+execute\s+/i,
+      /^(?:please\s+)?can\s+you\s+check\s+/i,
+      /^ssh\s+run\s+/i,
+      /^ssh\s+/i
+    ];
+    
+    for (const pattern of patterns) {
+      if (pattern.test(cleaned)) {
+        cleaned = cleaned.replace(pattern, "").trim();
+        break;
+      }
+    }
+    
+    return cleaned;
+  };
+
   const processAudio = async (blob: Blob) => {
     setIsProcessing(true);
     try {
@@ -715,8 +748,9 @@ export default function DeveloperHubPage() {
       
       if (explorerTab === "ssh-agent") {
         setShowVoiceModal(false);
-        setSshPrompt(resData.transcript);
-        runSSHCommand(resData.transcript);
+        const cleanedCmd = cleanVoiceCommand(resData.transcript);
+        setSshPrompt(cleanedCmd);
+        runSSHCommand(cleanedCmd);
         toast.success("Voice prompt executed in SSH Agent Tunnel!");
         return;
       }
