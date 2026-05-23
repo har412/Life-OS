@@ -465,6 +465,16 @@ export default function DeveloperHubPage() {
   const [isReviewingOpen, setIsReviewingOpen] = useState(false);
   const [isArtifactsLoading, setIsArtifactsLoading] = useState(false);
   const toastedArtifacts = useRef<Set<string>>(new Set());
+  const [autoScroll, setAutoScroll] = useState(true);
+
+  // Monitor scroll event on container to set autoScroll state
+  const handleTerminalScroll = () => {
+    const container = terminalScrollRef.current;
+    if (!container) return;
+    const threshold = 120; // safe padding threshold
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    setAutoScroll(isNearBottom);
+  };
 
   // Lock body scroll when terminal is maximized on mobile to prevent underlying page bounce/scroll
   useEffect(() => {
@@ -478,24 +488,25 @@ export default function DeveloperHubPage() {
     };
   }, [isTerminalMaximized, explorerTab]);
 
-  // Scroll to bottom of terminal only if user is near bottom or ran a command
+  // Scroll to bottom of terminal Snappily if autoscroll is active, font size changes, or command was run
   useEffect(() => {
     const container = terminalScrollRef.current;
     if (!container) return;
 
-    // Check if the user is already near the bottom (within a 100px threshold)
-    const threshold = 100;
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
     const lastLog = sshLogs[sshLogs.length - 1];
     const isSystemCommand = lastLog?.type === "system";
 
-    if (isNearBottom || isSystemCommand || sshLogs.length <= 1) {
+    if (autoScroll || isSystemCommand || sshLogs.length <= 1) {
       container.scrollTo({
         top: container.scrollHeight,
-        behavior: "smooth"
+        behavior: "auto" // SNAPPY instant scroll to prevent stutter on fast updates
       });
+      
+      if (isSystemCommand) {
+        setAutoScroll(true);
+      }
     }
-  }, [sshLogs]);
+  }, [sshLogs, terminalFontSize, isTerminalMaximized, autoScroll]);
 
   // Load Developer Hub Integration Status
   const loadIntegration = async () => {
@@ -620,9 +631,9 @@ export default function DeveloperHubPage() {
     }
   };
 
-  const sendSSHInput = async (customInput?: string) => {
+  const sendSSHInput = async (customInput?: string): Promise<boolean> => {
     const inputToSend = customInput !== undefined ? customInput : sshPrompt;
-    if (customInput === undefined && !inputToSend.trim()) return;
+    if (customInput === undefined && !inputToSend.trim()) return false;
 
     if (customInput === undefined) {
       setSshPrompt("");
@@ -639,7 +650,11 @@ export default function DeveloperHubPage() {
         const errData = await response.json();
         throw new Error(errData.error || "Failed to send SSH input");
       }
+      return true;
     } catch (err: any) {
+      if (customInput !== undefined) {
+        return false;
+      }
       setSshRunning(false);
       setSshLogs((prev) => [
         ...prev,
@@ -649,7 +664,30 @@ export default function DeveloperHubPage() {
           timestamp: new Date().toISOString(),
         },
       ]);
+      return false;
     }
+  };
+
+  const handleTerminalSubmit = async (customPrompt?: string) => {
+    const promptToSend = customPrompt !== undefined ? customPrompt : sshPrompt;
+    if (!promptToSend.trim()) return;
+
+    setAutoScroll(true);
+
+    if (customPrompt === undefined) {
+      setSshPrompt("");
+    }
+
+    // Try sending input to active shell first
+    const sent = await sendSSHInput(promptToSend);
+    if (sent) {
+      // Session exists and was active! Reconnect the SSE stream to see the outputs.
+      reconnectSession();
+      return;
+    }
+
+    // Otherwise, start a brand new command session
+    runSSHCommand(promptToSend);
   };
 
   const reconnectSession = async () => {
@@ -965,10 +1003,9 @@ export default function DeveloperHubPage() {
           sendSSHInput(cleanedCmd);
           toast.success("Voice input sent to active SSH PTY shell!");
         } else {
-          // Otherwise, start/run a brand new command
-          setSshPrompt(cleanedCmd);
-          runSSHCommand(cleanedCmd);
-          toast.success("Voice prompt executed in SSH Agent Tunnel!");
+          // Send input to active background shell or start a new command session
+          handleTerminalSubmit(cleanedCmd);
+          toast.success("Voice command sent to SSH Agent!");
         }
         return;
       }
@@ -1344,6 +1381,7 @@ export default function DeveloperHubPage() {
                       {/* Shell Output Console with Custom Bounded Scrolling & Touch Optimization */}
                       <div
                         ref={terminalScrollRef}
+                        onScroll={handleTerminalScroll}
                         className={`flex-1 p-3.5 sm:p-4 overflow-y-auto font-mono leading-relaxed space-y-2.5 bg-stone-950 scrollbar-thin scrollbar-thumb-stone-800 scrollbar-track-stone-950 overscroll-contain transition-all duration-150 ${
                           terminalFontSize === "sm"
                             ? "text-[10px] sm:text-[11px]"
@@ -1466,7 +1504,7 @@ export default function DeveloperHubPage() {
                                 if (sshRunning) {
                                   sendSSHInput();
                                 } else {
-                                  runSSHCommand();
+                                  handleTerminalSubmit();
                                 }
                               }
                             }}
@@ -1506,7 +1544,7 @@ export default function DeveloperHubPage() {
                             if (sshRunning) {
                               sendSSHInput();
                             } else {
-                              runSSHCommand();
+                              handleTerminalSubmit();
                             }
                           }}
                           disabled={!sshPrompt.trim()}
