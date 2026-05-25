@@ -1,4 +1,4 @@
-# Life-OS (Task & Alert Management Capsule) 🚀
+# Life-OS (Task & Alert Management Capsule) 
 
 > **A premium, privacy-first personal task manager and voice-dictated "think aloud" capture engine.** Just talk, and let advanced AI extract your task list, schedule deadlines, assess priorities, and queue multi-stage active push alerts—powered by Next.js, Prisma, Upstash QStash, and your own AI keys.
 
