@@ -342,6 +342,14 @@ function Dashboard() {
           {/* Icon actions */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
+              onClick={() => setShowAdd(true)}
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-orange-500 hover:bg-orange-600 text-white shrink-0 active:scale-95 transition-transform"
+              title="Add task via Voice"
+              aria-label="Add task via Voice"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => setMobileFilterOpen(o => !o)}
               className={`relative w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${mobileFilterOpen || hasFilters ? "bg-orange-100 text-orange-600" : "bg-stone-100 text-stone-500"}`}
             >
@@ -421,7 +429,14 @@ function Dashboard() {
               <h1 className="text-2xl font-bold text-stone-900 tracking-tight">{pageTitle}</h1>
               <ProgressStrip total={filtered.length} done={done} overdue={overdue} />
             </div>
-
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md shadow-orange-500/20 active:scale-95 transition-all"
+              title="Add task via Voice"
+              aria-label="Add task via Voice"
+            >
+              <Plus className="w-4 h-4" /> Add Task
+            </button>
           </div>
 
           {/* Desktop filter bar */}
