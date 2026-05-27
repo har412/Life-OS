@@ -179,6 +179,19 @@ export default function Sidebar() {
         </DragDropContext>
       </div>
 
+      {/* Expense Tracker entry */}
+      <div className="px-3 py-2 border-t border-stone-100">
+        <Link 
+          href="/expenses" 
+          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all ${
+            pathname === "/expenses" ? "bg-orange-50 text-orange-700" : "text-stone-600 hover:bg-stone-50"
+          }`}
+        >
+          <BarChart3 className={`w-4 h-4 shrink-0 ${pathname === "/expenses" ? "text-orange-500" : "text-stone-400"}`} />
+          <span className="text-sm font-semibold">Expense Tracker</span>
+        </Link>
+      </div>
+
       {/* Developer Hub entry */}
       <div className="px-3 py-2 border-t border-stone-100">
         <Link 

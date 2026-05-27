@@ -14,6 +14,13 @@ This workflow defines the standard procedure that any AI Agent (or automated scr
 - **Action**: Run `npm run build` locally in the app directory to run the compiler, TypeScript validation, and Prisma schema generation.
 - **Rule**: If the build fails, **HALT** the workflow immediately and report the specific errors to the user. Do not proceed to commit or push broken code.
 
+### Step 1.5: Automated E2E Regression Testing
+- **Action**: Run the automated Playwright E2E test suite locally using:
+  ```bash
+  npx playwright test
+  ```
+- **Rule**: If any E2E test fails, **HALT** the workflow immediately. Do not stage, commit, or push any changes until the regression is fully resolved. This guarantees that task flows, voice FAB processing, and other critical features never break in production.
+
 ### Step 2: Analyze Local Changes
 - **Action**: Run `git status` and `git diff` to identify all changed files (modified, untracked, deleted).
 - **Goal**: Understand the intent of the changes (e.g. is it a feature, layout adjustment, database addition, or a bug fix) to generate high-quality commit messages, branch names, and PR descriptions.

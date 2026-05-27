@@ -45,6 +45,16 @@ async function run() {
     process.exit(1);
   }
 
+  // 1.5. Run E2E Tests
+  log("🧪 Step 1.5: Running Automated Playwright E2E Testing...", COLORS.blue);
+  try {
+    execSync("npx playwright test", { stdio: "inherit" });
+    log("\n✨ E2E Testing Suite passed perfectly!\n", COLORS.green + COLORS.bright);
+  } catch (err) {
+    errorLog("E2E tests failed. Please resolve functional failures before pushing.");
+    process.exit(1);
+  }
+
   // 2. Check Git status
   log("🔍 Step 2: Checking current git changes...", COLORS.blue);
   let statusOutput = "";

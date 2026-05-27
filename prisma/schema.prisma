@@ -32,6 +32,7 @@ model User {
   githubIntegration GitHubIntegration?
   githubAuditLogs   GitHubAuditLog[]
   sshCredential     SSHCredential?
+  expenses          Expense[]
 }
 
 model AISettings {
@@ -203,5 +204,22 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 
   @@index([email])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  amount      Float
+  description String
+  date        DateTime @default(now())
+  category    String   // e.g. Food, Travel, Utilities, Shopping, Entertainment, Others
+  quantity    String?  @default("?")
+  location    String?  @default("?")
+  type        String   @default("DEBIT") // DEBIT or CREDIT
+  paymentMode String   @default("CASH")  // CASH, CARD, UPI, BANK_TRANSFER
+  metadata    Json?    // Optional JSON fields like tags or transcript excerpts
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 

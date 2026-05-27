@@ -14,31 +14,55 @@ To prevent runtime exceptions and maintain codebase readability:
 
 ---
 
-## 🔒 2. Security & Vulnerability Standards
+## 🔒 2. Security & Vulnerability Standards (OWASP Top 10 Compliance)
 
-We handle personal tasks, notifications, and user data. Security must be integrated into every change:
-- **Server Action Authorization:** All Next.js Server Actions in `src/app/actions/` MUST verify authentication before executing logic:
-  ```typescript
-  const session = await auth();
-  if (!session?.user?.id) return { error: "Unauthorized" };
-  const userId = session.user.id;
-  ```
-- **Database Tenancy (Ownership Lock):** Every Prisma query, update, or deletion must be explicitly scoped to the authenticated `userId` to prevent IDOR (Insecure Direct Object Reference) vulnerabilities:
-  ```typescript
-  // GOOD: Scoped to the active userId
-  await prisma.task.update({
-    where: { id: taskId, userId },
-    data: { ... }
-  });
+We handle personal tasks, notifications, and sensitive financial logs. Security must be built into every code contribution in alignment with the OWASP Top 10 standards:
 
-  // BAD: Vulnerable to cross-user mutations
+### 🛡️ A01:2021 – Broken Access Control (Insecure Direct Object Reference - IDOR)
+- **Tenancy-Locked Queries:** Every database action (read, update, delete, reorder) in Prisma MUST be explicitly scoped to the authenticated `userId`.
+  ```typescript
+  // SECURE: Enforces strict data ownership
   await prisma.task.update({
-    where: { id: taskId },
+    where: { id: taskId, userId: session.user.id },
     data: { ... }
   });
   ```
-- **Credential Storage:** Never log or store plain-text passwords. User passwords must be hashed using a salt factor of 10 (`bcrypt`) before saving to the database.
-- **Environment Variables:** Confidential tokens, secrets, or keys (e.g., `NEXTAUTH_SECRET`, database URIs, API keys) must be read from `process.env` and never hardcoded in files.
+- **Action Auth Gates:** Every Server Action in `src/app/actions/` and API route must verify user authentication. Immediately return `{ error: "Unauthorized" }` or `401 Unauthorized` if `session?.user?.id` is absent.
+
+### 🛡️ A02:2021 – Cryptographic Failures (Sensitive Data Exposure)
+- **High-Entropy Password Hashing:** Never log or save plain-text passwords. All credentials must be hashed using a salt factor of 10 (`bcrypt`) before saving to the database.
+- **TLS & Environment Hygiene:** Secrets, JWT secret values, base URLs, and integration keys (e.g., `DATABASE_URL`, `NEXTAUTH_SECRET`) must reside exclusively in `.env` variables and never be checked into version control.
+
+### 🛡️ A03:2021 – Injection (SQL Injection & XSS)
+- **Parameterized Database Queries:** Avoid executing dynamic strings or raw SQL concatenations (`prisma.$queryRawUnsafe`). Use standard Prisma methods or parameterized tagged templates (`prisma.$queryRaw`) to enforce compile-time escaping.
+- **XSS & Content Sanitization:** Any user-generated HTML (e.g., rich text from the editor, description blocks, comment threads) must be sanitized or safely outputted to prevent Cross-Site Scripting. Never use `dangerouslySetInnerHTML` with un-sanitized dynamic input strings.
+
+### 🛡️ A04:2021 – Insecure Design
+- **Authenticated Route Protection:** Enforce Next.js middleware router guards and NextAuth checks for protected views (`/kanban`, `/expenses`, `/settings`).
+- **Defensive Error Handling:** Standardize API responses so that stack traces and Prisma backend exceptions are caught and never leaked directly to the client browser.
+
+### 🛡️ A05:2021 – Security Misconfiguration
+- **Secure Browser Headers:** Set appropriate CSP (Content Security Policy) rules and restrict frame loading using standard modern Next.js response headers.
+- **Dev vs Prod Environment Configuration:** Toggle verbose debugging, source maps, and detailed logging tools off in production environments.
+
+### 🛡️ A06:2021 – Vulnerable and Outdated Components
+- **Dependency Auditing:** Perform standard package security audits (`npm audit`) before committing changes or deploying to production.
+- **Minimize Third-Party Dependency Footprint:** Do not install unnecessary npm dependencies. Favor core browser APIs and robust standard packages.
+
+### 🛡️ A07:2021 – Identification and Authentication Failures
+- **Secure Sessions:** Use standard, high-entropy JWT session tokens issued and cryptographically validated via NextAuth.
+- **Cookie Security:** Enforce secure cookies (`HttpOnly`, `Secure`, `SameSite=Lax`) to defend against session hijacking and Cross-Site Request Forgery (CSRF).
+
+### 🛡️ A08:2021 – Software and Data Integrity Failures
+- **Input Validation & Sanitization:** Use standard TS typings or runtime validators (e.g., `zod`) to assert the exact shape, bounds, and payload types of all inbound POST bodies, Next.js Server Actions, and API inputs.
+- **Automatic CI Validation:** Integrate build checks (`npm run build`) and Playwright E2E test suites inside the code-push pipeline to prevent software integration failures.
+
+### 🛡️ A09:2021 – Security Logging and Monitoring Failures
+- **Audit Trails:** Ensure core operations (e.g., failed logins, auth gates bypassed, server action failures) output structured logging on the server-side.
+- **Log Sanitation:** Ensure that sensitive details (passwords, JWTs, credit card info, bank details) are explicitly scrubbed and never printed to console logs or log aggregators.
+
+### 🛡️ A10:2021 – Server-Side Request Forgery (SSRF)
+- **Validation of External Resource Loading:** Restrict the ingestion of external assets or media uploads to validated domains. For standard media upload (e.g., attachment cards), assert type checks on base64 headers or strictly use trusted third-party SDK endpoints.
 
 ---
 

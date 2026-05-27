@@ -5,6 +5,7 @@ import { SessionProvider, useSession } from "next-auth/react";
 import Sidebar from "@/components/Sidebar";
 import { ViewProvider } from "@/lib/viewContext";
 import MobileNav from "@/components/MobileNav";
+import GlobalVoiceFAB from "@/components/GlobalVoiceFAB";
 
 function AuthGuard({ 
   children, 
@@ -70,7 +71,8 @@ function AuthGuard({
         <MobileNav />
       </div>
 
-
+      {/* Persistent AI Assistant Button */}
+      <GlobalVoiceFAB />
     </ViewProvider>
   );
 }
